@@ -12,13 +12,15 @@ import {
   X,
   ShoppingCart,
   TrendingUp,
-  Package2
+  Package2,
+  Heart
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Bundles', href: '/bundles', icon: Package2 },
   { name: 'Inventory', href: '/inventory', icon: Package },
+  { name: 'Bundles', href: '/bundles', icon: Package2 },
+  { name: 'Favourites', href: '/favourites', icon: Heart },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Orders', href: '/orders', icon: ShoppingCart },
