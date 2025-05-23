@@ -22,8 +22,6 @@ const navigation = [
   { name: 'Bundles', href: '/bundles', icon: Package2 },
   { name: 'Favourites', href: '/favourites', icon: Heart },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Orders', href: '/orders', icon: ShoppingCart },
 ]
 
 export default function Sidebar() {
@@ -53,6 +51,10 @@ export default function Sidebar() {
             <TrendingUp className="h-8 w-8 text-blue-600" />
             <span className="ml-2 text-xl font-bold text-gray-900">
               Bundle Pro
+              <p className='text-xs text-gray-500'>
+                Powered by <br></br>
+                <span className='text-gray-900'>Hack to the Future</span>
+              </p>
             </span>
           </div>
 
@@ -84,11 +86,11 @@ export default function Sidebar() {
           <div className="px-4 py-4 border-t border-gray-200">
             <div className="flex items-center">
               <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">BM</span>
+                <span className="text-white text-sm font-medium">JD</span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">Backoffice Manager</p>
-                <p className="text-xs text-gray-500">manager@company.com</p>
+                <p className="text-sm font-medium text-gray-900">John Doe</p>
+                <p className="text-xs text-gray-500">jdoe@notos.com</p>
               </div>
             </div>
           </div>
