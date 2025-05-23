@@ -3,7 +3,7 @@ import json
 
 # Διαβάζεις όλα τα φύλλα
 excel_path = 'Data.xlsx'
-sheets_dict = pd.read_excel(excel_path, sheet_name=None, engine='openpyxl')
+sheets_dict = pd.read_excel(excel_path, sheet_name='orders', engine='openpyxl')
 
 # Δημιουργείς ένα λεξικό για όλα τα φύλλα με μορφή JSON
 all_data_json = {
