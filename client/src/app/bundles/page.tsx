@@ -141,7 +141,7 @@ export default function BundlesPage() {
       setInventoryLoading(true)
       setInventoryError(null)
       
-      const response = await fetch('http://localhost:5000/inventory-dropdown', {
+      const response = await fetch('http://127.0.0.1:5000/inventory-dropdown', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -185,9 +185,8 @@ export default function BundlesPage() {
   const fetchBundles = async () => {
     try {
       setLoading(true)
-      setError(null)
       
-      const response = await fetch('http://localhost:5000/bundles', {
+      const response = await fetch('http://127.0.0.1:5000/bundles', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -214,9 +213,8 @@ export default function BundlesPage() {
   const searchBundlesWithParameters = async () => {
     try {
       setLoading(true)
-      setError(null)
       
-      const response = await fetch('http://localhost:5000/bundles/data', {
+      const response = await fetch('http://127.0.0.1:5000/bundles/data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -720,7 +718,7 @@ function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
 
     try {
       // Replace with your Flask backend URL for creating bundles
-      const response = await fetch('http://localhost:5000/api/bundles', {
+      const response = await fetch('http://127.0.0.1:5000/api/bundles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
