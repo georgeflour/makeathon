@@ -176,12 +176,42 @@ export default function RevenueAnalyticsDashboard() {
     const timer = setTimeout(() => setLoading(false), 1500);
     return () => clearTimeout(timer);
   }, []);
+const [sum, setSum] = useState(0);
+const [error, setError] = useState(null);
 
-  // Calculate key metrics
-  const actualRevenue = revenueComparisonData
-    .filter(d => d.actual)
-    .reduce((sum, d) => sum + d.actual, 0);
-  
+const fetchSum = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    const response = await fetch('http://127.0.0.1:5000/analytics', {  // Make sure this URL matches backend route
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(data)
+    setSum(data);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchSum();
+}, []);
+
+// Calculate actual revenue by summing existing actual values + the fetched total sum:
+const actualRevenue = sum
+ 
   const predictedRevenue = revenueComparisonData
     .filter(d => d.actual)
     .reduce((sum, d) => sum + d.predicted, 0);
