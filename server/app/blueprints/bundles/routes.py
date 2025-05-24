@@ -40,9 +40,25 @@ def get_bundles():
 @bundles_bp.route("/bundles/generate", methods=["POST"])
 def generate_bundles():
     try:
-        # Generate new bundles using AI
-        result = get_results_from_ai()
-        
+        request_data = request.get_json() or {}
+
+        # Map frontend parameters to AI function parameters
+        product_to_clear = request_data.get("product_to_clear")
+        target_profit_margin_input = request_data.get("target_profit_margin_input", "Default (35%)")
+        duration_input = request_data.get("duration_input", "Estimate based on seasonality and stock")
+        objective_input = request_data.get("objective_input", "Increase average basket value by a target % (e.g., 10%)")
+        bundle_type_input = request_data.get("bundle_type_input", "All")
+        bundle_size_input = request_data.get("bundle_size_input", "Default (2–5 products)")
+
+        result = get_results_from_ai(
+            product_to_clear=product_to_clear,
+            target_profit_margin_input=target_profit_margin_input,
+            duration_input=duration_input,
+            objective_input=objective_input,
+            bundle_type_input=bundle_type_input,
+            bundle_size_input=bundle_size_input
+        )
+
         if result:
             # Store the new bundles in the database
             conn = get_db_connection()
@@ -54,6 +70,7 @@ def generate_bundles():
         else:
             return jsonify({"error": "Failed to generate bundles"}), 500
     except Exception as e:
+        print(f"Error in generate_bundles: {str(e)}")  # Add logging
         return jsonify({"error": str(e)}), 500
     
 @bundles_bp.route("/bundles/data", methods=["POST"])
@@ -63,23 +80,26 @@ def get_data_user():
     if not request_data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Extract parameters from frontend
+    # Extract parameters from frontend and map them to AI function parameters
     product_name = request_data.get("product_name")
-    profit_margin = request_data.get("profit_margin", 0)
+    profit_margin = request_data.get("profit_margin", 15)
     objective = request_data.get("objective", "Max Cart")
     quantity = request_data.get("quantity", 2)
-    duration = request_data.get("timeframe", "1 month")
+    timeframe = request_data.get("timeframe", "1 month")
     bundle_type = request_data.get("bundle_type", "all")
 
-    if not product_name: # If product name is empty string
-        product_name = None
+    # Map frontend parameters to AI function parameters
+    ai_parameters = {
+        "product_to_clear": product_name if product_name else None,
+        "target_profit_margin_input": f"{profit_margin}%",
+        "duration_input": timeframe,
+        "objective_input": "Increase average basket value by a target % (e.g., 10%)" if objective == "Max Cart" else "Clear specified product(s)",
+        "bundle_type_input": bundle_type.capitalize(),
+        "bundle_size_input": f"{quantity} products"
+    }
 
-    result = get_results_from_ai(product_name=product_name,
-                                 profit_margin=profit_margin,
-                                 objective=objective,
-                                 quantity=quantity,
-                                 duration=duration,
-                                 bundle_type=bundle_type)
+    result = get_results_from_ai(**ai_parameters)
+    
     if result:
         return jsonify(result), 200
     else:
