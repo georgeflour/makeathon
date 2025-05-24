@@ -6,8 +6,12 @@ def create_app(test_config=None):
 
     # Import Blueprints
     from app.blueprints.inventory.routes import inventory_bp
+    from app.blueprints.datasets.routes import datasets_bp
+    from app.blueprints.classify.routes import classify_bp
 
     # Register Blueprints
     app.register_blueprint(inventory_bp)
+    app.register_blueprint(datasets_bp)
+    app.register_blueprint(classify_bp)
 
     return app
