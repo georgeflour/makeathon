@@ -21,6 +21,17 @@ def getInventory():
     # Προσθήκη στήλης index
     df.insert(0, 'index', range(1, len(df) + 1))
 
+    # Μετονομασία της στήλης 'Item Title' σε 'title'
+    df = df.rename(columns={'Item title': 'title'})
+
+    # Επιλογή μόνο των επιθυμητών στηλών
+    df = df[['index', 'title', 'Quantity', 'price', 'Category']]
+
+    # Μετονομασία της στήλης 'Quantity' σε 'quantity' για ομοιομορφία
+    df = df.rename(columns={'Quantity': 'quantity'})
+    # Μετονομασία της στήλης 'Category' σε 'category'
+    df = df.rename(columns={'Category': 'category'})
+    
     # Μετατροπή σε JSON
     inventory_json = df.to_json(orient='records', lines=False)
     return inventory_json
