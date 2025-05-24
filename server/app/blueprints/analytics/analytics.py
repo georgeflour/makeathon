@@ -14,8 +14,9 @@ def get_totalsales():
     # Read the Excel file
     df = pd.read_excel(EXCEL_PATH)
 
+    grouped = df.groupby('OrderNumber', as_index=False)['TotalOrderAmount'].first()
     # Sum the values in the 'TotalOrderAmount' column
-    total_sum = df['TotalOrderAmount'].sum()
+    total_sum = grouped['TotalOrderAmount'].sum()
     
     print (total_sum)
     
