@@ -64,31 +64,23 @@ def get_data_user():
         return jsonify({"error": "No data provided"}), 400
 
     # Extract parameters from frontend
-    product_id = request_data.get("product_id")
+    product_name = request_data.get("product_name")
     profit_margin = request_data.get("profit_margin", 0)
     objective = request_data.get("objective", "Max Cart")
     quantity = request_data.get("quantity", 2)
     duration = request_data.get("timeframe", "1 month")
-    bundle_type = request_data.get("bundle_type", "complementary")
+    bundle_type = request_data.get("bundle_type", "all")
 
-    response = {
-        "product_id": product_id,
-        "profit_margin": profit_margin,
-        "objective": objective,
-        "quantity": quantity,
-        "timeframe": duration,
-        "bundle_type": bundle_type,
-    }
+    if not product_name: # If product name is empty string
+        product_name = None
 
-    return jsonify(response), 200
-
-
-"""
-Product
-Profit Margin [0 - 35] %
-Objective ==> 1) Max Cart
-              2) Sell Out
-Quantity Products in the bundle 2+
-Timeframe / Duration
-Bundle Type ==> 1) complmentary 2) thematic 3) seasonal 4) cross-sell 5) upsell
-"""
+    result = get_results_from_ai(product_name=product_name,
+                                 profit_margin=profit_margin,
+                                 objective=objective,
+                                 quantity=quantity,
+                                 duration=duration,
+                                 bundle_type=bundle_type)
+    if result:
+        return jsonify(result), 200
+    else:
+        return jsonify({"error": "No bundles found"}), 404
