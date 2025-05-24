@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import logging
 from datetime import datetime
 
@@ -190,9 +190,9 @@ def load_data_from_excel():
         # Clear existing data before loading new data
         logging.info("Clearing existing data...")
         with engine.connect() as connection:
-            connection.execute("TRUNCATE TABLE \"Orders\" CASCADE;")
-            connection.execute("TRUNCATE TABLE \"Inventory\" CASCADE;")
-            connection.execute("COMMIT;")
+            connection.execute(text("TRUNCATE TABLE \"Orders\" CASCADE;"))
+            connection.execute(text("TRUNCATE TABLE \"Inventory\" CASCADE;"))
+            connection.execute(text("COMMIT;"))
 
         # Load new data
         logging.info("Loading Orders data...")
