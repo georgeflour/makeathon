@@ -9,9 +9,10 @@ def create_app(test_config=None):
     # Import Blueprints
     from app.blueprints.bundles.routes import bundles_bp
     from app.blueprints.inventory.routes import inventory_bp
-
+    from app.blueprints.analytics.routes import analytics_bp    
     # Register Blueprints
     app.register_blueprint(bundles_bp)
     app.register_blueprint(inventory_bp)
+    app.register_blueprint(analytics_bp)
 
     return app

@@ -1,19 +1,22 @@
 import os
 import json
-
-def get_prediction():
+import os
+import pandas as pd
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EXCEL_PATH = os.path.join(BASE_DIR, "Data.xlsx")
+def get_totalsales():
     """
     This function is used to get a prediction from the AI model.
     It returns a JSON response with the prediction.
     It reads the chosen bundles from a JSON file and requests a prediction
     """
-    bundles_path = os.path.join(os.path.dirname(__file__), 'json', 'chosen_bundles.json')
-    with open(bundles_path, 'r') as f:
-        chosen_bundles = json.load(f)
-    try:
-        data = request_ai_prediction(chosen_bundles)
-        if not data:
-            return {"error": "No data available for prediction"}, 404
-        return {"prediction": data}, 200
-    except Exception as e:
-        return {"error": str(e)}, 500
+
+    # Read the Excel file
+    df = pd.read_excel(EXCEL_PATH)
+
+    # Sum the values in the 'TotalOrderAmount' column
+    total_sum = df['TotalOrderAmount'].sum()
+    
+    print (total_sum)
+    
+    return total_sum
