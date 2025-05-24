@@ -8,9 +8,10 @@ def create_app(test_config=None):
     CORS(app)
     # Import Blueprints
     from app.blueprints.bundles.routes import bundles_bp
-
+    from app.blueprints.inventory.routes import inventory_bp
 
     # Register Blueprints
     app.register_blueprint(bundles_bp)
+    app.register_blueprint(inventory_bp)
 
     return app
