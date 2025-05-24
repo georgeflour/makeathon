@@ -14,6 +14,7 @@ def get_results_from_ai():
                 "profitMargin": "10%",
                 "startDate": "2023-10-01",
                 "endDate": "2023-10-31",
+                "rationale": "This bundle combines essential electronics with stylish furniture, perfect for home upgrades."
             },
             {
                 "bundle_id": "bundle2",
@@ -27,6 +28,7 @@ def get_results_from_ai():
                 "profitMargin": "15%",
                 "startDate": "2023-11-01",
                 "endDate": "2023-11-30",
+                "rationale": "This bundle offers a stylish combination of clothing and accessories, ideal for the fashion-conscious."
             }
         ],
     }
