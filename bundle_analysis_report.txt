@@ -1,0 +1,104 @@
+================================================================================
+E-COMMERCE BUNDLE INTELLIGENCE REPORT
+================================================================================
+Generated on: 2025-05-24 17:06:31
+
+DATA SUMMARY
+----------------------------------------
+Total Orders: 1,000
+Unique Products: 199
+Unique Users: 150
+Total Revenue: $224,525.31
+
+CLUSTERING ANALYSIS
+----------------------------------------
+Number of Clusters: 2
+
+Cluster 1:
+  Size: 541 products
+  Avg Price: $103.22
+  Avg Quantity: 2.6
+  Top Categories: Books, Sports, Home
+
+Cluster 0:
+  Size: 459 products
+  Avg Price: $71.72
+  Avg Quantity: 2.3
+  Top Categories: Books, Beauty, Sports
+
+BUNDLE OPPORTUNITIES
+----------------------------------------
+Cross-sell Bundles: 10 opportunities (avg confidence: 0.47)
+Volume Bundles: 15 opportunities (avg confidence: 0.22)
+
+TOP BUNDLE RECOMMENDATIONS
+----------------------------------------
+1. Cross-sell Bundle (Confidence: 0.51)
+   Description: High-margin Electronics + Popular Beauty
+   Items: 2
+     • Electronics Item SKU0019 - $101.08
+     • Beauty Item SKU0015 - $97.49
+
+2. Cross-sell Bundle (Confidence: 0.51)
+   Description: High-margin Sports + Popular Beauty
+   Items: 2
+     • Sports Item SKU0003 - $141.29
+     • Beauty Item SKU0015 - $97.49
+
+3. Cross-sell Bundle (Confidence: 0.50)
+   Description: High-margin Books + Popular Beauty
+   Items: 2
+     • Books Item SKU0017 - $79.31
+     • Beauty Item SKU0015 - $97.49
+
+4. Cross-sell Bundle (Confidence: 0.49)
+   Description: High-margin Sports + Popular Beauty
+   Items: 2
+     • Sports Item SKU0001 - $85.29
+     • Beauty Item SKU0015 - $97.49
+
+5. Cross-sell Bundle (Confidence: 0.49)
+   Description: High-margin Home + Popular Beauty
+   Items: 2
+     • Home Item SKU0014 - $77.80
+     • Beauty Item SKU0015 - $97.49
+
+6. Cross-sell Bundle (Confidence: 0.48)
+   Description: High-margin Sports + Popular Beauty
+   Items: 2
+     • Sports Item SKU0026 - $79.41
+     • Beauty Item SKU0015 - $97.49
+
+7. Cross-sell Bundle (Confidence: 0.48)
+   Description: High-margin Sports + Popular Beauty
+   Items: 2
+     • Sports Item SKU0010 - $70.98
+     • Beauty Item SKU0015 - $97.49
+
+8. Cross-sell Bundle (Confidence: 0.45)
+   Description: High-margin Clothing + Popular Beauty
+   Items: 2
+     • Clothing Item SKU0027 - $63.65
+     • Beauty Item SKU0015 - $97.49
+
+9. Volume Bundle (Confidence: 0.43)
+   Description: 3x Clothing Item SKU0039 - Save 15%
+   Items: 1
+     • Clothing Item SKU0039 - $74.99
+   Potential Savings: $33.75
+
+10. Cross-sell Bundle (Confidence: 0.42)
+   Description: High-margin Clothing + Popular Beauty
+   Items: 2
+     • Clothing Item SKU0028 - $48.90
+     • Beauty Item SKU0015 - $97.49
+
+STRATEGIC RECOMMENDATIONS
+----------------------------------------
+1. Implement 0 high-confidence bundles immediately
+3. Implement Volume discounts for 15 products
+   Can increase average order value significantly
+4. Use 10 Cross-sell bundles to improve margins
+   Combine high-margin items with popular products
+
+================================================================================

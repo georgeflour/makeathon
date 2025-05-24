@@ -1,0 +1,36 @@
+bundle_id,type,description,confidence,num_items,item_position,sku,item_title,category,price,quantity
+1,Cross-sell,High-margin Electronics + Popular Beauty,0.5078506152099125,2,1,SKU0019,Electronics Item SKU0019,Electronics,101.084,1
+1,Cross-sell,High-margin Electronics + Popular Beauty,0.5078506152099125,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+2,Cross-sell,High-margin Sports + Popular Beauty,0.5073602652614331,2,1,SKU0003,Sports Item SKU0003,Sports,141.29,1
+2,Cross-sell,High-margin Sports + Popular Beauty,0.5073602652614331,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+3,Cross-sell,High-margin Books + Popular Beauty,0.4984519506806464,2,1,SKU0017,Books Item SKU0017,Books,79.307,1
+3,Cross-sell,High-margin Books + Popular Beauty,0.4984519506806464,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+4,Cross-sell,High-margin Sports + Popular Beauty,0.4903237268263814,2,1,SKU0001,Sports Item SKU0001,Sports,85.289,1
+4,Cross-sell,High-margin Sports + Popular Beauty,0.4903237268263814,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+5,Cross-sell,High-margin Home + Popular Beauty,0.4857563120641445,2,1,SKU0014,Home Item SKU0014,Home,77.798,1
+5,Cross-sell,High-margin Home + Popular Beauty,0.4857563120641445,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+6,Cross-sell,High-margin Sports + Popular Beauty,0.4822529928174371,2,1,SKU0026,Sports Item SKU0026,Sports,79.405,1
+6,Cross-sell,High-margin Sports + Popular Beauty,0.4822529928174371,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+7,Cross-sell,High-margin Sports + Popular Beauty,0.47936131760306055,2,1,SKU0010,Sports Item SKU0010,Sports,70.976,1
+7,Cross-sell,High-margin Sports + Popular Beauty,0.47936131760306055,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+8,Cross-sell,High-margin Clothing + Popular Beauty,0.4543323921527672,2,1,SKU0027,Clothing Item SKU0027,Clothing,63.65,1
+8,Cross-sell,High-margin Clothing + Popular Beauty,0.4543323921527672,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+9,Volume,3x Clothing Item SKU0039 - Save 15%,0.42900000000000005,1,1,SKU0039,Clothing Item SKU0039,Clothing,74.99,3
+10,Cross-sell,High-margin Clothing + Popular Beauty,0.42326529331388807,2,1,SKU0028,Clothing Item SKU0028,Clothing,48.896,1
+10,Cross-sell,High-margin Clothing + Popular Beauty,0.42326529331388807,2,2,SKU0015,Beauty Item SKU0015,Beauty,97.492,1
+11,Cross-sell,High-margin Books + Popular Sports,0.4126390663899604,2,1,SKU0017,Books Item SKU0017,Books,79.307,1
+11,Cross-sell,High-margin Books + Popular Sports,0.4126390663899604,2,2,SKU0001,Sports Item SKU0001,Sports,85.289,1
+12,Volume,4x Beauty Item SKU0015 - Save 20%,0.341,1,1,SKU0015,Beauty Item SKU0015,Beauty,97.49,4
+13,Volume,4x Clothing Item SKU0141 - Save 20%,0.25200000000000006,1,1,SKU0141,Clothing Item SKU0141,Clothing,86.21,4
+14,Volume,4x Books Item SKU0164 - Save 20%,0.2,1,1,SKU0164,Books Item SKU0164,Books,104.12,4
+15,Volume,3x Sports Item SKU0001 - Save 15%,0.198,1,1,SKU0001,Sports Item SKU0001,Sports,85.29,3
+16,Volume,3x Books Item SKU0081 - Save 15%,0.198,1,1,SKU0081,Books Item SKU0081,Books,85.79,3
+17,Volume,3x Books Item SKU0093 - Save 15%,0.198,1,1,SKU0093,Books Item SKU0093,Books,96.15,3
+18,Volume,3x Sports Item SKU0101 - Save 15%,0.198,1,1,SKU0101,Sports Item SKU0101,Sports,81.85,3
+19,Volume,4x Clothing Item SKU0059 - Save 20%,0.192,1,1,SKU0059,Clothing Item SKU0059,Clothing,72.97,4
+20,Volume,4x Books Item SKU0048 - Save 20%,0.17600000000000002,1,1,SKU0048,Books Item SKU0048,Books,89.46,4
+21,Volume,4x Beauty Item SKU0114 - Save 20%,0.17600000000000002,1,1,SKU0114,Beauty Item SKU0114,Beauty,101.3,4
+22,Volume,4x Beauty Item SKU0149 - Save 20%,0.17600000000000002,1,1,SKU0149,Beauty Item SKU0149,Beauty,73.2,4
+23,Volume,3x Clothing Item SKU0167 - Save 15%,0.17600000000000002,1,1,SKU0167,Clothing Item SKU0167,Clothing,117.63,3
+24,Volume,4x Electronics Item SKU0076 - Save 20%,0.175,1,1,SKU0076,Electronics Item SKU0076,Electronics,88.88,4
+25,Volume,3x Home Item SKU0155 - Save 15%,0.168,1,1,SKU0155,Home Item SKU0155,Home,99.57,3
