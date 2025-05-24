@@ -1,6 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Search, Filter, Edit, Trash2, ArrowLeft, Settings } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import Button from '@/components/ui/Button'
+import Card from '@/components/ui/Card'
 
 // Updated type to match Flask backend response
 interface FlaskBundle {
@@ -607,8 +610,6 @@ interface BundleCardProps {
 }
 
 function BundleCard({ bundle }: BundleCardProps) {
-  const [isFlipped, setIsFlipped] = useState(false)
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800'
@@ -703,6 +704,42 @@ function BundleCard({ bundle }: BundleCardProps) {
           <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
         </div>
       </div>
+    <div className="card hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
+          {bundle.status}
+        </span>
+      </div>
+      
+      <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
+      
+      <div className="space-y-2 mb-4">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Type:</span>
+          <span className="font-medium">{getTypeLabel(bundle.type)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Items:</span>
+          <span className="font-medium">{bundle.itemCount}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Original Price:</span>
+          <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Bundle Price:</span>
+          <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Discount:</span>
+          <span className="font-medium text-red-600">{bundle.discount}%</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Profit Margin:</span>
+          <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
+        </div>
+      </div>
 
       <div className="border-t pt-4">
         <div className="flex justify-between text-xs text-gray-500 mb-3">
@@ -724,6 +761,167 @@ function BundleCard({ bundle }: BundleCardProps) {
             🗑
           </button>
         </div>
+      <div className="border-t pt-4">
+        <div className="flex justify-between text-xs text-gray-500 mb-3">
+          <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
+          <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
+        </div>
+        
+        <div className="flex space-x-2">
+          <Button size="sm" variant="secondary" className="flex-1">
+            <Eye className="h-3 w-3 mr-1" />
+            View
+          </Button>
+          <Button size="sm" variant="secondary" className="flex-1">
+            <Edit className="h-3 w-3 mr-1" />
+            Edit
+          </Button>
+          <Button size="sm" variant="danger">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface CreateBundleModalProps {
+  onClose: () => void
+  onSubmit: () => void
+}
+
+function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    type: 'complementary' as Bundle['type'],
+    startDate: '',
+    endDate: '',
+    price: '',
+    originalPrice: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      // Replace with your Flask backend URL for creating bundles
+      const response = await fetch('http://localhost:5000/api/bundles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          price: parseFloat(formData.price),
+          OriginalPrice: parseFloat(formData.originalPrice),
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          // Add other fields as needed by your Flask API
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Refresh the bundles list
+      onSubmit()
+      onClose()
+    } catch (error) {
+      console.error('Error creating bundle:', error)
+      // You might want to show an error message to the user
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Bundle</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bundle Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Original Price (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.originalPrice}
+                onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bundle Price (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Bundle'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )
