@@ -2,3 +2,8 @@ pandas
 openpyxl
 python-dotenv
 openai
+azure.storage.blob
+sklearn.linear_model
+sklearn.ensemble
+json
+numpy
