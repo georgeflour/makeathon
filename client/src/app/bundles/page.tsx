@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, Edit, Trash2, Settings, Plus, Eye } from 'lucide-react'
+import { Search, Filter, Edit, Trash2, Settings, Plus, Eye, Sparkles } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -81,6 +81,7 @@ export default function BundlesPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryError, setInventoryError] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
 
   // Function to transform Flask data to UI format
   const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
@@ -209,6 +210,36 @@ export default function BundlesPage() {
     }
   }
 
+  // Generate new bundles
+  const generateBundles = async () => {
+    try {
+      setIsGenerating(true)
+      setLoading(true)
+      
+      const response = await fetch('http://127.0.0.1:5000/bundles/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: FlaskResponse = await response.json()
+      const transformedBundles = transformFlaskData(data.bundles)
+      setBundles(transformedBundles)
+      setIsCustomSearch(false)
+    } catch (err) {
+      console.error('Error generating bundles:', err)
+      setError(err instanceof Error ? err.message : 'Failed to generate bundles')
+    } finally {
+      setIsGenerating(false)
+      setLoading(false)
+    }
+  }
+
   // Search bundles with custom parameters
   const searchBundlesWithParameters = async () => {
     try {
@@ -292,23 +323,44 @@ export default function BundlesPage() {
 
       {/* Advanced Search Panel */}
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
-          >
-            <Settings className="h-4 w-4" />
-            Advanced Search
-          </button>
-          
-          {isCustomSearch && (
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
             <button
-              onClick={resetToDefault}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
             >
-              Show All Bundles
+              <Settings className="h-4 w-4" />
+              Advanced Search
             </button>
-          )}
+            
+            {isCustomSearch && (
+              <button
+                onClick={resetToDefault}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+              >
+                Show All Bundles
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={generateBundles}
+            disabled={isGenerating}
+            className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 via-blue-400 to-indigo-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            {isGenerating ? (
+              <div className="flex items-center gap-2 relative z-10">
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                <span className="font-semibold">Generating Magic...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 relative z-10">
+                <Sparkles className="h-4 w-4" />
+                <span className="font-semibold">Generate Bundles</span>
+              </div>
+            )}
+          </button>
         </div>
 
         {showAdvancedSearch && (
@@ -682,156 +734,18 @@ function BundleCard({ bundle }: BundleCardProps) {
             <Eye className="h-3 w-3" />
             View
           </button>
-          <button className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1">
+          <button 
+            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+          >
             <Edit className="h-3 w-3" />
             Edit
           </button>
-          <button className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors">
+          <button 
+            className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
+          >
             <Trash2 className="h-3 w-3" />
           </button>
         </div>
-      </div>
-    </div>
-  )
-}
-
-interface CreateBundleModalProps {
-  onClose: () => void
-  onSubmit: () => void
-}
-
-function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    type: 'complementary' as Bundle['type'],
-    startDate: '',
-    endDate: '',
-    price: '',
-    originalPrice: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-
-    try {
-      // Replace with your Flask backend URL for creating bundles
-      const response = await fetch('http://127.0.0.1:5000/api/bundles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          price: parseFloat(formData.price),
-          OriginalPrice: parseFloat(formData.originalPrice),
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          // Add other fields as needed by your Flask API
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      // Refresh the bundles list
-      onSubmit()
-      onClose()
-    } catch (error) {
-      console.error('Error creating bundle:', error)
-      // You might want to show an error message to the user
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Bundle</h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bundle Name
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Original Price (€)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.originalPrice}
-                onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bundle Price (€)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.price}
-                onChange={(e) => setFormData({...formData, price: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex space-x-3 pt-4">
-            <Button type="submit" className="flex-1" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Bundle'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </form>
       </div>
     </div>
   )
