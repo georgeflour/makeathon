@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from .ai import get_results_from_ai, return_some_data
+from .ai import get_results_from_ai
 
 bundles_bp = Blueprint("Bundles", __name__)
 
