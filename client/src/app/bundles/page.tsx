@@ -8,15 +8,15 @@ import Card from '@/components/ui/Card'
 interface FlaskBundle {
   bundle_id: string
   name: string
-  price: number
-  OriginalPrice: number
-  profitMargin: string
-  startDate: string
-  endDate: string
   items: {
-    item_id: string
-    classification: string
+    item_name: string
+    qty: number
   }[]
+  price: number
+  profitMargin: string
+  duration: string
+  season: string
+  rationale: string
 }
 
 interface FlaskResponse {
@@ -50,6 +50,8 @@ interface Bundle {
   profitMargin: string
   itemCount: number
   rationale?: string
+  duration: string
+  season: string
 }
 
 // Search parameters interface
@@ -86,52 +88,96 @@ export default function BundlesPage() {
   // Function to transform Flask data to UI format
   const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
     return flaskData.map(bundle => {
-      const discount = Math.round(((bundle.OriginalPrice - bundle.price) / bundle.OriginalPrice) * 100)
-      const currentDate = new Date()
-      const startDate = new Date(bundle.startDate)
-      const endDate = new Date(bundle.endDate)
-      
+      // Calculate original price based on profit margin
+      const profitMarginPercentage = parseInt(bundle.profitMargin) / 100
+      const originalPrice = bundle.price / (1 - profitMarginPercentage)
+      const discount = Math.round(((originalPrice - bundle.price) / originalPrice) * 100)
+
+      // Determine status based on season and duration
       let status: 'active' | 'inactive' | 'scheduled'
-      if (currentDate < startDate) {
-        status = 'scheduled'
-      } else if (currentDate > endDate) {
+      const currentDate = new Date()
+      
+      if (bundle.duration === 'Until stock runs out') {
+        status = 'active'
+      } else if (!bundle.season) {
         status = 'inactive'
       } else {
-        status = 'active'
+        const [startMonth, endMonth] = bundle.season.split('–')
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        const currentMonth = months[currentDate.getMonth()]
+        
+        if (startMonth && endMonth) {
+          const startIdx = months.indexOf(startMonth)
+          const endIdx = months.indexOf(endMonth)
+          const currentIdx = months.indexOf(currentMonth)
+          
+          if (startIdx <= currentIdx && currentIdx <= endIdx) {
+            status = 'active'
+          } else if (currentIdx < startIdx) {
+            status = 'scheduled'
+          } else {
+            status = 'inactive'
+          }
+        } else {
+          status = bundle.season ? 'active' : 'inactive'
+        }
       }
 
       // Generate description based on items
-      const classifications = bundle.items.map(item => item.classification)
-      const uniqueClassifications = [...new Set(classifications)]
-      const description = `Bundle containing ${bundle.items.length} items: ${uniqueClassifications.join(', ')}`
+      const itemDescriptions = bundle.items.map(item => `${item.qty}x ${item.item_name}`).join(', ')
+      const description = `Bundle containing: ${itemDescriptions}`
 
-      // Determine bundle type based on classifications
-      let type: Bundle['type'] = 'complementary'
-      if (uniqueClassifications.length > 2) {
-        type = 'cross-sell'
-      } else if (bundle.items.length > 3) {
+      // Determine bundle type based on items and rationale
+      let type: Bundle['type'] = 'all'
+      if (bundle.rationale.toLowerCase().includes('volume')) {
         type = 'volume'
-      } else if (uniqueClassifications.includes('electronics') || uniqueClassifications.includes('furniture')) {
+      } else if (bundle.rationale.toLowerCase().includes('cross-sell')) {
+        type = 'cross-sell'
+      } else if (bundle.rationale.toLowerCase().includes('seasonal')) {
+        type = 'seasonal'
+      } else if (bundle.rationale.toLowerCase().includes('complementary')) {
+        type = 'complementary'
+      } else if (bundle.rationale.toLowerCase().includes('theme')) {
         type = 'thematic'
+      }
+
+      // Calculate dates
+      const startDate = new Date()
+      let endDate = new Date()
+      if (bundle.duration !== 'Until stock runs out') {
+        const durationMatch = bundle.duration.match(/(\d+)\s+(week|month)s?/)
+        if (durationMatch) {
+          const [, amount, unit] = durationMatch
+          if (unit === 'week') {
+            endDate.setDate(endDate.getDate() + (parseInt(amount) * 7))
+          } else if (unit === 'month') {
+            endDate.setMonth(endDate.getMonth() + parseInt(amount))
+          }
+        }
+      } else {
+        endDate.setMonth(endDate.getMonth() + 6) // Default 6 months for "Until stock runs out"
       }
 
       return {
         id: bundle.bundle_id,
         name: bundle.name,
         description,
-        products: bundle.items.map(item => item.item_id),
-        originalPrice: bundle.OriginalPrice,
+        products: bundle.items.map(item => item.item_name),
+        originalPrice: Math.round(originalPrice * 100) / 100,
         bundlePrice: bundle.price,
         discount,
         type,
         status,
-        startDate: bundle.startDate,
-        endDate: bundle.endDate,
-        forecastedRevenue: bundle.price * 100,
-        actualRevenue: status === 'active' ? bundle.price * 75 : 0,
-        createdAt: bundle.startDate,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        forecastedRevenue: bundle.price * 100, // Example forecast
+        actualRevenue: status === 'active' ? bundle.price * 75 : 0, // Example actual revenue
+        createdAt: startDate.toISOString(),
         profitMargin: bundle.profitMargin,
-        itemCount: bundle.items.length
+        itemCount: bundle.items.reduce((acc, item) => acc + item.qty, 0),
+        rationale: bundle.rationale,
+        duration: bundle.duration,
+        season: bundle.season
       }
     })
   }
@@ -623,8 +669,148 @@ interface BundleCardProps {
   bundle: Bundle
 }
 
+interface ViewBundleModalProps {
+  bundle: Bundle
+  onClose: () => void
+}
+
+function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'all': return 'Default'
+      case 'complementary': return 'Complementary'
+      case 'thematic': return 'Thematic'
+      case 'volume': return 'Volume'
+      case 'cross-sell': return 'Cross-sell'
+      case 'seasonal': return 'Seasonal'
+      default: return type
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">{bundle.name}</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Bundle Details */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bundle Information</h3>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Type:</span>
+                  <span className="font-medium">{getTypeLabel(bundle.type)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Status:</span>
+                  <span className="font-medium capitalize">{bundle.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Original Price:</span>
+                  <span className="line-through text-gray-500">€{bundle.originalPrice}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Bundle Price:</span>
+                  <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Discount:</span>
+                  <span className="font-medium text-red-600">{bundle.discount}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Profit Margin:</span>
+                  <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Duration:</span>
+                  <span className="font-medium">{bundle.duration || 'Not specified'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Season:</span>
+                  <span className="font-medium">{bundle.season || 'Not specified'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Performance</h3>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Forecasted Revenue:</span>
+                  <span className="font-medium">€{bundle.forecastedRevenue}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Actual Revenue:</span>
+                  <span className="font-medium">€{bundle.actualRevenue}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Start Date:</span>
+                  <span className="font-medium">{new Date(bundle.startDate).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">End Date:</span>
+                  <span className="font-medium">{new Date(bundle.endDate).toLocaleDateString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Products & Rationale */}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Products in Bundle</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="space-y-2">
+                  {bundle.products.map((productName, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                      <div className="flex-1">
+                        <span className="font-medium">Product {index + 1}</span>
+                        <p className="text-sm text-gray-600 mt-1">{productName}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-3">
+                  Total Items: {bundle.itemCount}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Bundle Rationale</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {bundle.rationale || 'No rationale provided for this bundle.'}
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <p className="text-gray-700">
+                  {bundle.description}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function BundleCard({ bundle }: BundleCardProps) {
-  const [isFlipped, setIsFlipped] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -647,109 +833,81 @@ function BundleCard({ bundle }: BundleCardProps) {
     }
   }
 
-  const handleViewClick = () => {
-    setIsFlipped(true)
-  }
-
-  const handleBackClick = () => {
-    setIsFlipped(false)
-  }
-
-  if (isFlipped) {
-    return (
+  return (
+    <>
       <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Bundle Rationale</h3>
-          <button 
-            onClick={handleBackClick}
-            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            ← Back
-          </button>
+        <div className="flex items-start justify-between mb-3">
+          <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
+            {bundle.status}
+          </span>
         </div>
         
-        <div className="bg-gray-50 rounded-lg p-4 min-h-[200px]">
-          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-            {bundle.rationale || 'No rationale provided for this bundle.'}
-          </p>
-        </div>
+        <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
         
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Bundle: {bundle.name}</span>
-            <span>Type: {getTypeLabel(bundle.type)}</span>
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Type:</span>
+            <span className="font-medium">{getTypeLabel(bundle.type)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Items:</span>
+            <span className="font-medium">{bundle.itemCount}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Original Price:</span>
+            <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Bundle Price:</span>
+            <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Discount:</span>
+            <span className="font-medium text-red-600">{bundle.discount}%</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-500">Profit Margin:</span>
+            <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <div className="flex justify-between text-xs text-gray-500 mb-3">
+            <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
+            <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
+          </div>
+          
+          <div className="flex space-x-2">
+            <button 
+              onClick={() => setShowViewModal(true)}
+              className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+            >
+              <Eye className="h-3 w-3" />
+              View
+            </button>
+            <button 
+              className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+            >
+              <Edit className="h-3 w-3" />
+              Edit
+            </button>
+            <button 
+              className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
           </div>
         </div>
       </div>
-    )
-  }
 
-  return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
-          {bundle.status}
-        </span>
-      </div>
-      
-      <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
-      
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Type:</span>
-          <span className="font-medium">{getTypeLabel(bundle.type)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Items:</span>
-          <span className="font-medium">{bundle.itemCount}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Original Price:</span>
-          <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Bundle Price:</span>
-          <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Discount:</span>
-          <span className="font-medium text-red-600">{bundle.discount}%</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Profit Margin:</span>
-          <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
-        </div>
-      </div>
-
-      <div className="border-t pt-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-3">
-          <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
-          <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
-        </div>
-        
-        <div className="flex space-x-2">
-          <button 
-            onClick={handleViewClick}
-            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
-          >
-            <Eye className="h-3 w-3" />
-            View
-          </button>
-          <button 
-            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
-          >
-            <Edit className="h-3 w-3" />
-            Edit
-          </button>
-          <button 
-            className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      </div>
-    </div>
+      {showViewModal && (
+        <ViewBundleModal
+          bundle={bundle}
+          onClose={() => setShowViewModal(false)}
+        />
+      )}
+    </>
   )
 }
 
