@@ -4,23 +4,29 @@ def get_results_from_ai():
         "bundles": [
             {
                 "bundle_id": "bundle1",
+                "name": "Electronics and Furniture Bundle",
                 "items": [
                     {"item_id": "item1", "classification": "electronics"},
                     {"item_id": "item2", "classification": "furniture"}
                 ],
                 "price": 150.00,
-                "proiftMargin": 30.00,
-                "OriginalPrice": 200.00
+                "OriginalPrice": 200.00,
+                "profitMargin": "10%",
+                "startDate": "2023-10-01",
+                "endDate": "2023-10-31",
             },
             {
                 "bundle_id": "bundle2",
+                "name": "Clothing and Accessories Bundle",
                 "items": [
                     {"item_id": "item3", "classification": "clothing"},
                     {"item_id": "item4", "classification": "accessories"}
                 ],
                 "price": 75.00,
-                "proiftMargin": 25.00,
-                "OriginalPrice": 100.00
+                "OriginalPrice": 100.00,
+                "profitMargin": "15%",
+                "startDate": "2023-11-01",
+                "endDate": "2023-11-30",
             }
         ],
     }
