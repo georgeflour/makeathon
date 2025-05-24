@@ -262,35 +262,6 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
       
-      const response = await fetch('http://127.0.0.1:5000/bundles/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data: FlaskResponse = await response.json()
-      const transformedBundles = transformFlaskData(data.bundles)
-      setBundles(transformedBundles)
-      setIsCustomSearch(false)
-    } catch (err) {
-      console.error('Error generating bundles:', err)
-      setError(err instanceof Error ? err.message : 'Failed to generate bundles')
-    } finally {
-      setIsGenerating(false)
-      setLoading(false)
-    }
-  }
-
-  // Search bundles with custom parameters
-  const searchBundlesWithParameters = async () => {
-    try {
-      setLoading(true)
-      
       const response = await fetch('http://127.0.0.1:5000/bundles/data', {
         method: 'POST',
         headers: {
@@ -300,27 +271,23 @@ export default function BundlesPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error('Server error response:', errorText)
+        throw new Error(`Server error: ${errorText || response.statusText}`)
       }
 
       const data = await response.json()
+      console.log('Received data from server:', data)
       
-      // For now, we'll handle the response based on your backend implementation
-      // If the backend returns bundles in the same format, transform them
-      if (data.bundles) {
-        const transformedBundles = transformFlaskData(data.bundles)
-        setBundles(transformedBundles)
-      } else {
-        // If it returns different data, handle accordingly
-        console.log('Search response:', data)
-        setBundles([]) // Clear bundles or handle as needed
-      }
-      
-      setIsCustomSearch(true)
+      const transformedBundles = transformFlaskData(data.bundles)
+      setBundles(transformedBundles)
+      setShowAdvancedSearch(false)
+      setIsCustomSearch(false)
     } catch (err) {
-      console.error('Error searching bundles:', err)
-      setError(err instanceof Error ? err.message : 'Failed to search bundles')
+      console.error('Error generating bundles:', err)
+      setError(err instanceof Error ? err.message : 'Error loading bundles. Please try again.')
     } finally {
+      setIsGenerating(false)
       setLoading(false)
     }
   }
@@ -507,12 +474,10 @@ export default function BundlesPage() {
                   onChange={(e) => setSearchParameters({...searchParameters, timeframe: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="1 week">1 Week</option>
-                  <option value="2 weeks">2 Weeks</option>
-                  <option value="1 month">1 Month</option>
-                  <option value="2 months">2 Months</option>
-                  <option value="3 months">3 Months</option>
-                  <option value="6 months">6 Months</option>
+                  <option value="1 month">1 month</option>
+                  <option value="3 months">3 months</option>
+                  <option value="6 months">6 months</option>
+                  <option value="1 year">1 year</option>
                 </select>
               </div>
 
@@ -526,7 +491,7 @@ export default function BundlesPage() {
                   onChange={(e) => setSearchParameters({...searchParameters, bundle_type: e.target.value as Bundle['type']})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="all">Default</option>
+                  <option value="all">All</option>
                   <option value="complementary">Complementary</option>
                   <option value="thematic">Thematic</option>
                   <option value="seasonal">Seasonal</option>
@@ -538,12 +503,12 @@ export default function BundlesPage() {
 
             <div className="flex gap-3">
               <button
-                onClick={searchBundlesWithParameters}
+                onClick={generateBundles}
                 disabled={loading}
                 className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg transition-colors flex items-center gap-2"
               >
                 <Search className="h-4 w-4" />
-                Search Bundles
+                Generate Bundles
               </button>
               <button
                 onClick={() => setShowAdvancedSearch(false)}
@@ -634,7 +599,7 @@ export default function BundlesPage() {
             <p className="text-red-600 mb-2">Error loading bundles:</p>
             <p className="text-sm text-gray-600 mb-4">{error}</p>
             <button 
-              onClick={isCustomSearch ? searchBundlesWithParameters : fetchBundles}
+              onClick={isCustomSearch ? generateBundles : fetchBundles}
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
               Retry
