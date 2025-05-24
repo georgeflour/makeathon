@@ -4,6 +4,111 @@ from openai import AzureOpenAI
 
 load_dotenv()
 
+bundle_type = "Complementary"
+objectives = "Increase average basket value by a target % (e.g., 10%)"
+bundle_size = "Default (2–5 products)"
+profit_margin = "Default (35%)"
+duration = "Estimate based on seasonality and stock"
+
+prompt = f"""
+You are a **senior retail AI expert**. Your job is to generate product bundles that maximize revenue, optimize stock, and achieve business goals for a retail company. 
+**Your suggestions must use actual data from the provided dataset:** use each item's unit cost and price to calculate real bundle prices and profit margins. Do not assume the margin is always 35%—it must be computed per bundle, based on the included products and their prices.
+
+---
+
+### USER INPUT
+- **Bundle Type**: {bundle_type}
+- **Objectives**: {objectives}
+- **Bundle Size**: {bundle_size or "Default (2–5 products)"}
+- **Target Profit Margin**: {profit_margin or "Default (35%)"}
+- **Duration (if given)**: {duration or "Estimate based on seasonality and stock"}
+
+---
+
+### BUNDLE TYPES & LOGIC
+
+#### COMPLEMENTARY
+Group products often used together or frequently bought as a set.  
+Example: T-shirt + Jeans + Hat = casual outfit  
+**Season:** March to September
+
+#### THEME
+Group by shared category, seasonal relevance, or color coordination.  
+Examples:  
+- "Summer Beach Kit": Swimsuit + Sunglasses + Flip Flops  
+- "Earth Tone Colors": Brown T-shirt + Beige Shorts  
+**Season:** May to September
+
+#### VOLUME
+Same product in multiple units, usually at discount (e.g., 1+1 free or 3-for-2).  
+Use for low sales, low per-unit margin, or to clear inventory.
+
+#### CROSS-SELL
+Pair a popular product with a high-margin, underperforming product.  
+Example: Popular Sneakers + Expensive Bag (low sales)
+
+#### LEFTOVER
+Group slow-moving or “leftover” products. The goal is inventory clearance; profit margin may be lower or even negative for these bundles.
+
+---
+
+### GOALS & OPTIMIZATION TARGETS
+Your bundles must meet **one or both** of these goals:
+- **Cart Uplift Goal:** Increase average basket value by a given %
+- **Inventory Goal:** Clear specified product(s) from stock
+
+#### Bundle Constraints
+- Respect requested margin (typically up to 35%). **Never propose a margin higher than the given target; if it’s not feasible, maximize margin just below the target.**
+- Each bundle must include 2–5 items (default: 2, unless user specifies more).
+- Set **Bundle Price** using the actual (discounted or final) unit prices of included products, applying a realistic overall discount if necessary.
+- Set **Estimated Profit Margin** for the entire bundle, based on costs and price.
+- Recommend a **Duration** (e.g., "3 weeks", "2 months", "Until stock runs out")—this is the promotion’s *length*, and should vary realistically between bundles based on the products, inventory, or customer need.
+- Set a **Season** (e.g., "Spring", "Summer", "Holiday", "May–August")—set only when *relevant* for the bundle; avoid using the same season for every bundle.
+- Make sure **Duration** and **Season** are not always the same and do not contradict each other. Not every bundle needs both a specific season and a set duration.
+
+---
+
+### BUNDLE OUTPUT FORMAT
+
+For each of up to **10 suggested bundles**, output the following (strictly use this format):
+
+- **Bundle Name**: (creative and descriptive)
+- **Products**:
+  - [Product Name] x[Qty]
+  - (repeat for all products in bundle)
+- **Estimated Margin**: [X]%
+- **Price**: €[Y]
+- **Duration**: (e.g., "3 weeks", "1 month", "Until stock runs out", etc.)
+- **Season**: (e.g., "Spring", "May–August", "Holiday", or leave blank if not relevant)
+- **Rationale**: (Explain why these products are grouped, how this bundle meets the business goal, and clarify why margin and duration were chosen.)
+
+> **Important Formatting Rules:**  
+> - **Never repeat the same duration, season, or margin for all bundles. Vary these fields realistically and according to the bundle’s logic and data.**
+> - **Do not exceed the requested profit margin. If necessary, go as high as possible under the target.**
+> - **Rationales must show clear, business-driven logic (not just repeat the type definition).**
+> - **Never include extra commentary or template instructions in your answer.**
+> - **Every bundle MUST contain ALL required fields and lines in the exact order shown above, with NO missing values.**
+> - **Never return a truncated or incomplete bundle. If space is limited, return fewer bundles, but every bundle must be complete and correctly formatted.**
+> - **Never cut off a bundle at the end or omit any field—EVER. If you cannot fit 10 bundles, return as many as fit in the output limit, but each one MUST be fully complete.**
+
+
+---
+
+### INSTRUCTIONS
+
+- Suggest up to **10 feasible bundles**.
+- Use only product data provided (e.g., unit prices, costs, categories, sales history).
+- **Calculate each bundle’s margin and price realistically** using provided unit prices and desired discounts.
+- If no bundle type is specified, suggest the 10 highest-profit bundles you can find.
+- **Vary margin, price, duration, and season across bundles; never use the same values in all outputs.**
+- **Format output exactly as shown above.** Do **not** include any extra explanation or template text.
+
+---
+"""
+
+
+
+
 endpoint = os.environ.get("ENDPOINT")
 deployment = "makeathongpt41"  # Update if your deployment name is different!
 search_endpoint = os.environ.get("SEARCH_ENDPOINT")
@@ -21,7 +126,7 @@ completion = client.chat.completions.create(
     messages=[
         {
             "role": "user",
-            "content": "Give me an item from my blob storage dataset."
+            "content": prompt
         }
     ],
     extra_body={
