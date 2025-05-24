@@ -1,5 +1,11 @@
 from flask import Blueprint, jsonify, request
-from .dashboard import get_avg_order_value, get_total_revenue, get_active_bundles_count, get_stock_alerts_count
+from .dashboard import (
+    get_avg_order_value, 
+    get_total_revenue, 
+    get_active_bundles_count, 
+    get_stock_alerts_count,
+    get_revenue_trend
+)
 
 dashboard_bp = Blueprint("Dashboard", __name__)
 
@@ -31,3 +37,12 @@ def get_dashboard_stats():
     except Exception as e:
         print(f"Error getting dashboard stats: {str(e)}")
         return jsonify({"error": "Failed to get dashboard statistics"}), 500
+
+@dashboard_bp.route("/dashboard/revenue-trend", methods=["GET"])
+def get_revenue_trend_data():
+    try:
+        trend_data = get_revenue_trend()
+        return jsonify(trend_data), 200
+    except Exception as e:
+        print(f"Error getting revenue trend: {str(e)}")
+        return jsonify({"error": "Failed to get revenue trend data"}), 500

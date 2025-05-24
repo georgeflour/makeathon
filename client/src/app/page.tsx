@@ -6,8 +6,19 @@ import {
   DollarSign, 
   AlertTriangle,
   ArrowUpRight,
-  ArrowDownRight 
+  ArrowDownRight,
+  Loader2
 } from 'lucide-react'
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts'
 import Card from '@/components/ui/Card'
 
 interface DashboardStats {
@@ -17,6 +28,13 @@ interface DashboardStats {
   stockAlerts: number
   revenueChange: number
   aovChange: number
+}
+
+interface RevenueTrendData {
+  date: string
+  revenue: number
+  orders: number
+  items: number
 }
 
 export default function Dashboard() {
@@ -173,13 +191,122 @@ function StatCard({ title, value, change, icon, variant = 'default', loading }: 
 }
 
 function RevenueChart() {
+  const [trendData, setTrendData] = useState<RevenueTrendData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchTrendData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch('http://127.0.0.1:5000/dashboard/revenue-trend')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        // Format the data for the chart
+        const formattedData = data.map((item: RevenueTrendData) => ({
+          ...item,
+          date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+        }))
+        setTrendData(formattedData)
+      } catch (err) {
+        console.error('Error fetching revenue trend:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch revenue trend')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTrendData()
+  }, [])
+
+  if (loading) {
+    return (
+      <Card title="Revenue Trend" subtitle="Last 7 days">
+        <div className="h-64 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card title="Revenue Trend" subtitle="Last 7 days">
+        <div className="h-64 flex items-center justify-center text-red-600">
+          <div className="text-center">
+            <p className="mb-2">Error loading revenue trend</p>
+            <p className="text-sm text-gray-500">{error}</p>
+          </div>
+        </div>
+      </Card>
+    )
+  }
+
+  const formatEuro = (value: number) => `€${value.toLocaleString()}`
+
   return (
     <Card title="Revenue Trend" subtitle="Last 7 days">
-      <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="h-[400px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={trendData}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 5,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis 
+              tickFormatter={formatEuro}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip 
+              formatter={(value: number) => [`€${value.toLocaleString()}`, 'Revenue']}
+              labelStyle={{ fontSize: 12 }}
+              contentStyle={{ fontSize: 12 }}
+            />
+            <Legend />
+            <Line 
+              name="Daily Revenue"
+              type="monotone"
+              dataKey="revenue" 
+              stroke="#4F46E5"
+              strokeWidth={2}
+              dot={{ fill: '#4F46E5', r: 4 }}
+              activeDot={{ r: 6 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-4">
         <div className="text-center">
-          <TrendingUp className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-          <p>Revenue chart will be displayed here</p>
-          <p className="text-sm text-gray-400">Connected to backend API</p>
+          <p className="text-sm text-gray-500">Total Revenue</p>
+          <p className="text-lg font-semibold">
+            €{trendData.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Total Orders</p>
+          <p className="text-lg font-semibold">
+            {trendData.reduce((sum, day) => sum + day.orders, 0)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-500">Total Items</p>
+          <p className="text-lg font-semibold">
+            {trendData.reduce((sum, day) => sum + day.items, 0)}
+          </p>
         </div>
       </div>
     </Card>

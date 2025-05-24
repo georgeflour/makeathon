@@ -7,6 +7,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ORDERS_PATH = os.path.join(BASE_DIR, "Data.xlsx")
 INVENTORY_PATH = os.path.join(BASE_DIR, "..", "inventory", "inventory_enriched.xlsx")
 BUNDLES_PATH = os.path.join(BASE_DIR, "..", "bundles", "bundles.json")
+
 # Read the Excel files once when the module loads
 try:
     orders_df = pd.read_excel(ORDERS_PATH)
@@ -100,3 +101,57 @@ def get_stock_alerts_count():
     except Exception as e:
         print(f"Error counting stock alerts: {str(e)}")
         return 0
+
+def get_revenue_trend():
+    try:
+        # Convert CreatedDate to datetime
+        orders_df['CreatedDate'] = pd.to_datetime(orders_df['CreatedDate'])
+        
+        # Get the last 7 days of data
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=7)
+        
+        # Filter orders for the last 7 days
+        mask = (orders_df['CreatedDate'] >= start_date) & (orders_df['CreatedDate'] <= end_date)
+        recent_orders = orders_df[mask]
+        
+        # Group by date and calculate daily revenue
+        daily_revenue = recent_orders.groupby(recent_orders['CreatedDate'].dt.date).agg({
+            'TotalOrderAmount': 'sum',
+            'OrderNumber': 'nunique',
+            'Quantity': 'sum'
+        }).reset_index()
+        
+        # Convert to list of dictionaries
+        trend_data = []
+        for _, row in daily_revenue.iterrows():
+            trend_data.append({
+                'date': row['CreatedDate'].strftime('%Y-%m-%d'),
+                'revenue': convert_to_native_types(round(row['TotalOrderAmount'], 2)),
+                'orders': convert_to_native_types(row['OrderNumber']),
+                'items': convert_to_native_types(row['Quantity'])
+            })
+            
+        # Fill in missing days with zero values
+        all_dates = pd.date_range(start=start_date.date(), end=end_date.date(), freq='D')
+        complete_trend = []
+        
+        for date in all_dates:
+            date_str = date.strftime('%Y-%m-%d')
+            existing_data = next((item for item in trend_data if item['date'] == date_str), None)
+            
+            if existing_data:
+                complete_trend.append(existing_data)
+            else:
+                complete_trend.append({
+                    'date': date_str,
+                    'revenue': 0,
+                    'orders': 0,
+                    'items': 0
+                })
+        
+        return complete_trend
+        
+    except Exception as e:
+        print(f"Error getting revenue trend: {str(e)}")
+        return []
