@@ -54,7 +54,7 @@ interface Bundle {
 
 // Search parameters interface
 interface SearchParameters {
-  product_id: string
+  product_name: string
   profit_margin: number
   objective: 'Max Cart' | 'Sell Out'
   quantity: number
@@ -70,7 +70,7 @@ export default function BundlesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
   const [searchParameters, setSearchParameters] = useState<SearchParameters>({
-    product_id: '',
+    product_name: '',
     profit_margin: 15,
     objective: 'Max Cart',
     quantity: 2,
@@ -253,7 +253,7 @@ export default function BundlesPage() {
     fetchBundles()
     setShowAdvancedSearch(false)
     setSearchParameters({
-      product_id: '',
+      product_name: '',
       profit_margin: 15,
       objective: 'Max Cart',
       quantity: 2,
@@ -331,8 +331,8 @@ export default function BundlesPage() {
                   </div>
                 ) : (
                   <select
-                    value={searchParameters.product_id}
-                    onChange={(e) => setSearchParameters({...searchParameters, product_id: e.target.value})}
+                    value={searchParameters.product_name}
+                    onChange={(e) => setSearchParameters({...searchParameters, product_name: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent max-h-40 overflow-y-auto"
                     style={{ maxHeight: '10rem' }}
                   >
@@ -428,6 +428,7 @@ export default function BundlesPage() {
                   onChange={(e) => setSearchParameters({...searchParameters, bundle_type: e.target.value as Bundle['type']})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
+                  <option value="all">Default</option>
                   <option value="complementary">Complementary</option>
                   <option value="thematic">Thematic</option>
                   <option value="seasonal">Seasonal</option>
@@ -500,12 +501,12 @@ export default function BundlesPage() {
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-blue-800 text-sm">
             Showing results for custom search
-            {searchParameters.product_id && (
+            {searchParameters.product_name && (
               <>
-                {' '}with Product ID: <strong>{searchParameters.product_id}</strong>
-                {inventoryItems.find(item => item.item_id === searchParameters.product_id) && (
+                {' '}with Product ID: <strong>{searchParameters.product_name}</strong>
+                {inventoryItems.find(item => item.item_id === searchParameters.product_name) && (
                   <span className="ml-1">
-                    ({inventoryItems.find(item => item.item_id === searchParameters.product_id)?.name})
+                    ({inventoryItems.find(item => item.item_id === searchParameters.product_name)?.name})
                   </span>
                 )}
               </>
@@ -584,6 +585,7 @@ function BundleCard({ bundle }: BundleCardProps) {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
+      case 'all': return 'Default'
       case 'complementary': return 'Complementary'
       case 'thematic': return 'Thematic'
       case 'volume': return 'Volume'
@@ -704,7 +706,7 @@ function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    type: 'complementary' as Bundle['type'],
+    type: 'all' as Bundle['type'],
     startDate: '',
     endDate: '',
     price: '',
