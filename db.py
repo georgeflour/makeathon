@@ -187,14 +187,21 @@ def load_data_from_excel():
         # Connect using SQLAlchemy
         engine = create_engine('postgresql+psycopg2://makeathon_user:makeathon_pass@localhost:5432/makeathon')
 
-        # Append instead of replace to prevent table being dropped
-        logging.info("Appending Orders data...")
-        orders_df.to_sql('Orders', engine, if_exists='append', index=False, method='multi')
-        logging.info(f"Appended {len(orders_df)} orders")
+        # Clear existing data before loading new data
+        logging.info("Clearing existing data...")
+        with engine.connect() as connection:
+            connection.execute("TRUNCATE TABLE \"Orders\" CASCADE;")
+            connection.execute("TRUNCATE TABLE \"Inventory\" CASCADE;")
+            connection.execute("COMMIT;")
 
-        logging.info("Appending Inventory data...")
+        # Load new data
+        logging.info("Loading Orders data...")
+        orders_df.to_sql('Orders', engine, if_exists='append', index=False, method='multi')
+        logging.info(f"Loaded {len(orders_df)} orders")
+
+        logging.info("Loading Inventory data...")
         inventory_df.to_sql('Inventory', engine, if_exists='append', index=False, method='multi')
-        logging.info(f"Appended {len(inventory_df)} inventory items")
+        logging.info(f"Loaded {len(inventory_df)} inventory items")
 
         engine.dispose()
 
