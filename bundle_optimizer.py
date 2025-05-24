@@ -32,7 +32,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# === 1. Load Data from SQLite ===
+# === 1. Load Data from SQL ===
 def load_data():
     conn = get_db_connection()
     
