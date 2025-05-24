@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, ArrowLeft, Settings } from 'lucide-react'
+import { Search, Filter, Edit, Trash2, ArrowLeft, Settings } from 'lucide-react'
 
 // Updated type to match Flask backend response
 interface FlaskBundle {
