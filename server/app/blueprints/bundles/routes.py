@@ -73,6 +73,40 @@ def generate_bundles():
         print(f"Error in generate_bundles: {str(e)}")  # Add logging
         return jsonify({"error": str(e)}), 500
     
+@bundles_bp.route("/bundles/delete", methods=["POST"])
+def delete_bundles():
+    try:
+        request_data = request.get_json()
+        bundle_id = request_data.get("bundle_id")
+        
+        if not bundle_id:
+            return jsonify({"error": "No bundle_id provided"}), 400
+
+        conn = get_db_connection()
+        # Get the most recent bundle set
+        result = conn.execute('SELECT id, bundle_data FROM bundles ORDER BY created_at DESC LIMIT 1').fetchone()
+        
+        if not result:
+            return jsonify({"error": "No bundles found"}), 404
+
+        # Parse the JSON data
+        bundles_data = json.loads(result['bundle_data'])
+        
+        # Filter out the bundle to delete
+        bundles_data['bundles'] = [b for b in bundles_data['bundles'] if b['bundle_id'] != bundle_id]
+        
+        # Update the database with the new bundles data
+        conn.execute('UPDATE bundles SET bundle_data = ? WHERE id = ?',
+                    (json.dumps(bundles_data), result['id']))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"message": "Bundle deleted successfully"}), 200
+    except Exception as e:
+        print(f"Error in delete_bundles: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @bundles_bp.route("/bundles/data", methods=["POST"])
 def get_data_user():
     request_data = request.get_json()
