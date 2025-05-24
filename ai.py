@@ -164,15 +164,6 @@ def ai_call(
     search_index = os.environ.get("SEARCH_INDEX_NAME")
     search_key = os.environ.get("SEARCH_KEY")
 
-    # if not all([endpoint, os.environ.get("AZURE_KEY"), search_endpoint, search_index, search_key]):
-    #     print("Σφάλμα: Μία ή περισσότερες μεταβλητές περιβάλλοντος δεν έχουν οριστεί.")
-    #     print(f"ENDPOINT: {'Ορισμένο' if endpoint else 'Δεν έχει οριστεί'}")
-    #     print(f"AZURE_KEY: {'Ορισμένο' if os.environ.get('AZURE_KEY') else 'Δεν έχει οριστεί'}")
-    #     print(f"SEARCH_ENDPOINT: {'Ορισμένο' if search_endpoint else 'Δεν έχει οριστεί'}")
-    #     print(f"SEARCH_INDEX_NAME: {'Ορισμένο' if search_index else 'Δεν έχει οριστεί'}")
-    #     print(f"SEARCH_KEY: {'Ορισμένο' if search_key else 'Δεν έχει οριστεί'}")
-    #     return "Σφάλμα: Απαιτούνται μεταβλητές περιβάλλοντος."
-
 
     client = AzureOpenAI(
         api_key=os.environ.get("AZURE_KEY"),
