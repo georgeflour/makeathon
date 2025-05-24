@@ -7,3 +7,6 @@ sklearn.linear_model
 sklearn.ensemble
 json
 numpy
+flask
+aiohttp
+flask[async]
