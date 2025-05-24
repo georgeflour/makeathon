@@ -255,12 +255,12 @@ def ai_bundles_to_json(ai_output):
         })
     return {"bundles": bundles}
 # Uncomment the example you want to run
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
-    print("Ex 1  1: Default")
-    output =ai_call()
-    bundle_json = ai_bundles_to_json(output)
-    print(json.dumps(bundle_json, indent=2, ensure_ascii=False))
+#    print("Ex 1  1: Default")
+#    output =ai_call()
+#    bundle_json = ai_bundles_to_json(output)
+#    print(json.dumps(bundle_json, indent=2, ensure_ascii=False))
     
     # print("\nEx 2: Specific product lower margin")
     # ai_call(
