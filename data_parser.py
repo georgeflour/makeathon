@@ -1,14 +1,18 @@
 import pandas as pd
+import json
 
-# Load the Excel file
-excel_path = 'Data.xlsx'  # replace with your Excel file path
-df = pd.read_excel(excel_path, engine='openpyxl')  # supports .xlsx files
+# Διαβάζεις όλα τα φύλλα
+excel_path = 'Data.xlsx'
+sheets_dict = pd.read_excel(excel_path, sheet_name='orders', engine='openpyxl')
 
-# Convert to JSON
-json_data = df.to_json(orient='records', indent=4)
+# Δημιουργείς ένα λεξικό για όλα τα φύλλα με μορφή JSON
+all_data_json = {
+    sheet_name: df.to_dict(orient='records')
+    for sheet_name, df in sheets_dict.items()
+}
 
-# Save to a JSON file
-with open('data.json', 'w') as f:
-    f.write(json_data)
+# Αποθήκευση σε αρχείο JSON
+with open('data.json', 'w', encoding='utf-8') as f:
+    json.dump(all_data_json, f, ensure_ascii=False, indent=4)
 
-print("Excel data has been converted to JSON.")
+print("Όλα τα φύλλα του Excel μετατράπηκαν σε JSON.")
