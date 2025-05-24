@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 import numpy as np
-# from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import HistGradientBoostingRegressor
 
 # === 1. Φόρτωση JSON αρχείου ===
@@ -30,13 +30,18 @@ sales_summary = df_orders.groupby("SKU").agg({
 bundle_df = pd.merge(sales_summary, df_inventory, on="SKU", how="left")
 bundle_df.rename(columns={"Quantity": "stock"}, inplace=True)
 
+# Replace NaN values in stock or avg_price (if any)
+bundle_df["stock"] = bundle_df["stock"].fillna(0)
+bundle_df["avg_price"] = bundle_df["avg_price"].fillna(0)
+bundle_df["total_sales"] = bundle_df["total_sales"].fillna(0)
+
 # === 5. Προετοιμασία για μοντέλο ===
 X = bundle_df[["avg_price", "stock"]].fillna(0).astype(int)
 y = bundle_df["total_sales"].fillna(0).astype(int)
 X = X.dropna()
 y = y.loc[X.index].dropna()  # Match y to filtered X
 
-model = HistGradientBoostingRegressor()
+model = LinearRegression()
 model.fit(X, y)
 
 # === 6. Συνάρτηση πρότασης τιμής ===
