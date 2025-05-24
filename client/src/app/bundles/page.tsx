@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, Edit, Trash2, Settings, Plus, Eye, Sparkles } from 'lucide-react'
+import { Search, Filter, Edit, Trash2, Settings, Plus, Eye, Sparkles, Calendar, Heart } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -181,6 +181,7 @@ export default function BundlesPage() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryError, setInventoryError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [viewBundle, setViewBundle] = useState<Bundle | null>(null)
 
   // Fetch inventory items
   const fetchInventoryItems = async () => {
@@ -650,9 +651,17 @@ export default function BundlesPage() {
               key={bundle.id}
               bundle={bundle}
               onDelete={handleDelete}
+              onView={setViewBundle}
             />
           ))}
         </div>
+      )}
+
+      {viewBundle && (
+        <ViewBundleModal
+          bundle={viewBundle}
+          onClose={() => setViewBundle(null)}
+        />
       )}
     </div>
   )
@@ -661,6 +670,7 @@ export default function BundlesPage() {
 interface BundleCardProps {
   bundle: Bundle
   onDelete: (bundleId: string) => Promise<void>
+  onView: (bundle: Bundle) => void
 }
 
 interface ViewBundleModalProps {
@@ -803,16 +813,45 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
     )
   }
 
-function BundleCard({ bundle, onDelete }: BundleCardProps) {
-  const [showViewModal, setShowViewModal] = useState(false)
+function BundleCard({ bundle, onDelete, onView }: BundleCardProps) {
   const [isFavorite, setIsFavorite] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'inactive': return 'bg-gray-100 text-gray-800'
-      case 'scheduled': return 'bg-blue-100 text-blue-800'
-      default: return 'bg-gray-100 text-gray-800'
+  useEffect(() => {
+    fetchFavoriteStatus()
+  }, [])
+
+  const fetchFavoriteStatus = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/bundles/favorite/${bundle.id}`)
+      const data = await response.json()
+      setIsFavorite(data.is_favorite)
+    } catch (error) {
+      console.error('Error fetching favorite status:', error)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('http://127.0.0.1:5000/bundles/favorite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bundle_id: bundle.id,
+          is_favorite: !isFavorite
+        }),
+      })
+
+      if (response.ok) {
+        setIsFavorite(!isFavorite)
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -828,121 +867,102 @@ function BundleCard({ bundle, onDelete }: BundleCardProps) {
     }
   }
 
-  const toggleFavorite = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/bundles/favorite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bundle_id: bundle.id,
-          is_favorite: !isFavorite
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status')
-      }
-
-      setIsFavorite(!isFavorite)
-    } catch (error) {
-      console.error('Error updating favorite status:', error)
-    }
-  }
-
-  // Fetch initial favorite status
-  useEffect(() => {
-    const fetchFavoriteStatus = async () => {
-      try {
-        const response = await fetch(`http://127.0.0.1:5000/bundles/favorite/${bundle.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setIsFavorite(data.is_favorite)
-        }
-      } catch (error) {
-        console.error('Error fetching favorite status:', error)
-      }
-    }
-    fetchFavoriteStatus()
-  }, [bundle.id])
-
   return (
-    <>
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-start justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-900 flex-1 pr-2">{bundle.name}</h3>
+        <span className={`px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+          bundle.status === 'active' ? 'bg-green-100 text-green-700' :
+          bundle.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+          'bg-gray-100 text-gray-700'
+        }`}>
           {bundle.status}
         </span>
       </div>
       
-      <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
+      <p className="text-gray-600 mb-6 leading-relaxed">{bundle.description}</p>
       
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Type:</span>
-          <span className="font-medium">{getTypeLabel(bundle.type)}</span>
+      <div className="space-y-3 mb-6">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 font-medium">Type:</span>
+          <span className="text-gray-400 text-lg">{getTypeLabel(bundle.type)}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Items:</span>
-          <span className="font-medium">{bundle.itemCount}</span>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 font-medium">Items:</span>
+          <span className="text-gray-400 text-lg">{bundle.itemCount}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Original Price:</span>
-          <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 font-medium">Original Price:</span>
+          <span className="line-through text-gray-400 text-lg">€{bundle.originalPrice}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Bundle Price:</span>
-          <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 font-medium">Bundle Price:</span>
+          <span className="font-bold text-green-600 text-xl">€{bundle.bundlePrice}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Discount:</span>
-          <span className="font-medium text-red-600">{bundle.discount}%</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Profit Margin:</span>
-          <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-500 font-medium">Profit Margin:</span>
+          <span className="font-bold text-blue-600 text-lg">
+             ({bundle.profitMargin})
+          </span>
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-3">
-          <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
-          <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
+      <div className="border-t border-gray-100 pt-4">
+        <div className="flex justify-between text-sm text-gray-500 mb-4">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {new Date(bundle.startDate).toLocaleDateString()}
+          </span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {new Date(bundle.endDate).toLocaleDateString()}
+          </span>
         </div>
         
-        <div className="flex space-x-2">
+        <div className="flex gap-3">
           <button 
-              onClick={() => setShowViewModal(true)}
-            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+            onClick={() => onView(bundle)}
+            className="flex-1 px-4 py-3 text-sm bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium"
           >
-            <Eye className="h-3 w-3" />
-            View
+            <Eye className="h-4 w-4" />
+            View Details
           </button>
-            <button 
-              onClick={toggleFavorite}
-              className={`flex-1 px-4 py-2 text-sm ${isFavorite ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'} hover:bg-red-200 rounded-md transition-colors flex items-center justify-center gap-1`}
-            >
-              {isFavorite ? '❤️' : '🤍'}
+          <button
+            onClick={toggleFavorite}
+            disabled={isLoading}
+            className={`group relative px-4 py-3 ${
+              isFavorite 
+                ? 'bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 text-white' 
+                : 'bg-white hover:bg-gray-50 text-red-500'
+            } rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium overflow-hidden`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-r ${
+              isFavorite 
+                ? 'from-pink-600 to-red-600' 
+                : 'from-gray-50 to-gray-100'
+            } transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left`}></div>
+            <div className="relative flex items-center gap-2">
+              {isLoading ? (
+                <>
+                  <div className={`animate-spin rounded-full h-4 w-4 border-2 ${isFavorite ? 'border-white border-t-transparent' : 'border-red-500 border-t-transparent'}`}></div>
+                  <span className="text-sm">Loading...</span>
+                </>
+              ) : (
+                <>
+                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : 'stroke-current'}`} />
+                </>
+              )}
+            </div>
           </button>
-            <button 
-              onClick={() => onDelete(bundle.id)}
-              className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
-            >
-            <Trash2 className="h-3 w-3" />
+          <button 
+            onClick={() => onDelete(bundle.id)}
+            className="px-4 py-3 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 font-medium"
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
     </div>
-
-      {showViewModal && (
-        <ViewBundleModal
-          bundle={bundle}
-          onClose={() => setShowViewModal(false)}
-        />
-      )}
-    </>
   )
 }
 
