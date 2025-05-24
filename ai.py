@@ -1,21 +1,38 @@
 import os
+import requests
 from dotenv import load_dotenv
-from openai import AzureOpenAI
-
 load_dotenv()
+api_key = os.getenv("AZURE_KEY")
+endpoint = os.getenv("ENDPOINT")  # Should look like https://YOUR-RESOURCE-NAME.openai.azure.com/
+deployment = "makeathongpt41"
 
-client = AzureOpenAI(
-    api_key=os.getenv("AZURE_KEY"),           # Your Azure OpenAI API key
-    azure_endpoint=os.getenv("ENDPOINT"),     # e.g. "https://YOUR-RESOURCE-NAME.openai.azure.com/"
-    api_version="2024-02-15-preview"          # Use the correct API version for your deployment
-)
+url = f"{endpoint}/openai/deployments/{deployment}/extensions/chat/completions?api-version=2024-02-15-preview"
 
-completion = client.chat.completions.create(
-    model="makeathongpt41",  # Replace with your exact deployment name!
-    messages=[
+print("Endpoint loaded:", os.getenv("ENDPOINT"))  # debug
+
+
+headers = {
+    "api-key": api_key,
+    "Content-Type": "application/json"
+}
+
+body = {
+    "messages": [
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Is crete better than athens?"}
+        {"role": "user", "content": "What are the project milestones?"}
+    ],
+    "dataSources": [
+        {
+            "type": "AzureBlobStorage",
+            "parameters": {
+                "endpoint": os.getenv("STORAGE_ENDPOINT"),
+                "container": os.getenv("STORAGE_CONTAINER"),
+                "credential": os.getenv("STORAGE_KEY"),
+            }
+        }
     ]
-)
+}
 
-print(completion.choices[0].message.content)
+response = requests.post(url, headers=headers, json=body)
+print(response.json())
+
