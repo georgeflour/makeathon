@@ -5,13 +5,14 @@ import json
 import re
 import uuid
 
+
 def ai_call(
     product_to_clear: str = None,
     target_profit_margin_input: str = "Default (35%)",
     duration_input: str = "Estimate based on seasonality and stock",
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
-    bundle_size_input: str = "Default (2–5 products)"
+    bundle_size_input: str = "Default (2–5 products)",
 ):
     """
     Calls Azure AI to create bundles
@@ -33,13 +34,17 @@ def ai_call(
     objectives_for_prompt = objective_input
 
     if product_to_clear:
-        if "Inventory Goal" in objective_input or \
-           "clear specified product(s)" in objective_input.lower() or \
-           objective_input == "Max Cart": 
+        if (
+            "Inventory Goal" in objective_input
+            or "clear specified product(s)" in objective_input.lower()
+            or objective_input == "Max Cart"
+        ):
             objectives_for_prompt = f"Inventory Goal: Clear {product_to_clear} from stock."
-        elif objective_input: 
-            objectives_for_prompt += f". Additionally, prioritize clearing {product_to_clear} from stock."
-        else: 
+        elif objective_input:
+            objectives_for_prompt += (
+                f". Additionally, prioritize clearing {product_to_clear} from stock."
+            )
+        else:
             objectives_for_prompt = f"Inventory Goal: Clear {product_to_clear} from stock."
 
     print(f"Bundle Type: {bundle_type_for_prompt}")
@@ -172,22 +177,16 @@ def ai_call(
     search_index = os.environ.get("SEARCH_INDEX_NAME")
     search_key = os.environ.get("SEARCH_KEY")
 
-
     client = AzureOpenAI(
         api_key=os.environ.get("AZURE_KEY"),
         azure_endpoint=endpoint,
-        api_version="2024-05-01-preview",  
+        api_version="2024-05-01-preview",
     )
 
     try:
         completion = client.chat.completions.create(
             model=deployment,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
+            messages=[{"role": "user", "content": prompt}],
             extra_body={
                 "data_sources": [
                     {
@@ -195,49 +194,46 @@ def ai_call(
                         "parameters": {
                             "endpoint": search_endpoint,
                             "index_name": search_index,
-                            "authentication": {
-                                "type": "api_key",
-                                "key": search_key
-                            }
-                        }
+                            "authentication": {"type": "api_key", "key": search_key},
+                        },
                     }
                 ]
             },
-            temperature=0.7, 
-            max_tokens=3000 
+            temperature=0.7,
+            max_tokens=3000,
         )
         response_content = completion.choices[0].message.content
-       
+
         print(response_content)
         print("-------------------------")
         return response_content
     except Exception as e:
         print(f"Error during API Azure call: {e}")
         return f"API Error: {e}"
-    
+
 
 def ai_bundles_to_json(ai_output):
     # Adjust the bundle block pattern for optional trailing spaces and allow for empty lines between bundles
     bundle_pattern = re.compile(
-        r'- \*\*Bundle Name\*\*: (.*?)\s*\n- \*\*Products\*\*:\s*\n(.*?)(?=\n- \*\*Bundle Name\*\*:|\Z)', 
-        re.DOTALL
+        r"- \*\*Bundle Name\*\*: (.*?)\s*\n- \*\*Products\*\*:\s*\n(.*?)(?=\n- \*\*Bundle Name\*\*:|\Z)",
+        re.DOTALL,
     )
     # Allow for optional spaces before/after x in product line
-    product_pattern = re.compile(r'- ([^\n]+?)\s*x\s*(\d+)')
+    product_pattern = re.compile(r"- ([^\n]+?)\s*x\s*(\d+)")
     # Updated field patterns for possible extra spaces at the end of each line
     field_patterns = {
-        "margin": re.compile(r'- \*\*Estimated Margin\*\*: ([\d.,]+)%\s*'),
-        "price": re.compile(r'- \*\*Price\*\*: €([\d.,]+)\s*'),
-        "duration": re.compile(r'- \*\*Duration\*\*: (.*?)\s*(?:\n|$)'),
-        "season": re.compile(r'- \*\*Season\*\*: (.*?)\s*(?:\n|$)'),
-        "rationale": re.compile(r'- \*\*Rationale\*\*: (.*?)(?:\s*\[doc\d+\])?(?:\n|$)'),
+        "margin": re.compile(r"- \*\*Estimated Margin\*\*: ([\d.,]+)%\s*"),
+        "price": re.compile(r"- \*\*Price\*\*: €([\d.,]+)\s*"),
+        "duration": re.compile(r"- \*\*Duration\*\*: (.*?)\s*(?:\n|$)"),
+        "season": re.compile(r"- \*\*Season\*\*: (.*?)\s*(?:\n|$)"),
+        "rationale": re.compile(r"- \*\*Rationale\*\*: (.*?)(?:\s*\[doc\d+\])?(?:\n|$)"),
     }
 
     bundles = []
     for bundle_match in bundle_pattern.finditer(ai_output):
         name, bundle_block = bundle_match.groups()
         # Extract products
-        products_block = bundle_block.split('- **Estimated Margin**:')[0]
+        products_block = bundle_block.split("- **Estimated Margin**:")[0]
         products = [
             {"item_name": m.group(1).strip(), "qty": int(m.group(2))}
             for m in product_pattern.finditer(products_block)
@@ -248,16 +244,18 @@ def ai_bundles_to_json(ai_output):
         duration = field_patterns["duration"].search(bundle_block)
         season = field_patterns["season"].search(bundle_block)
         rationale = field_patterns["rationale"].search(bundle_block)
-        bundles.append({
-            "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
-            "name": name.strip(),
-            "items": products,
-            "price": float(price.group(1).replace(',', '.')) if price else None,
-            "profitMargin": f"{margin.group(1)}%" if margin else None,
-            "duration": duration.group(1).strip() if duration else None,
-            "season": season.group(1).strip() if season else None,
-            "rationale": rationale.group(1).strip() if rationale else None,
-        })
+        bundles.append(
+            {
+                "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
+                "name": name.strip(),
+                "items": products,
+                "price": float(price.group(1).replace(",", ".")) if price else None,
+                "profitMargin": f"{margin.group(1)}%" if margin else None,
+                "duration": duration.group(1).strip() if duration else None,
+                "season": season.group(1).strip() if season else None,
+                "rationale": rationale.group(1).strip() if rationale else None,
+            }
+        )
     return {"bundles": bundles}
 
 
@@ -267,7 +265,7 @@ def get_results_from_ai(
     duration_input: str = "Estimate based on seasonality and stock",
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
-    bundle_size_input: str = "Default (2–5 products)"
+    bundle_size_input: str = "Default (2–5 products)",
 ):
     output = ai_call(
         product_to_clear=product_to_clear,
@@ -275,8 +273,7 @@ def get_results_from_ai(
         duration_input=duration_input,
         objective_input=objective_input,
         bundle_type_input=bundle_type_input,
-        bundle_size_input=bundle_size_input
+        bundle_size_input=bundle_size_input,
     )
     bundle_json = ai_bundles_to_json(output)
     return bundle_json
-    

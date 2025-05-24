@@ -3,7 +3,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 class ApiClient {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
-    
+
     try {
       const response = await fetch(url, {
         headers: {
@@ -36,7 +36,10 @@ class ApiClient {
     })
   }
 
-  async optimizePrice(bundleId: string, params: any): Promise<{ optimizedPrice: number; forecast: any }> {
+  async optimizePrice(
+    bundleId: string,
+    params: any
+  ): Promise<{ optimizedPrice: number; forecast: any }> {
     return this.request(`/bundles/${bundleId}/optimize-price`, {
       method: 'POST',
       body: JSON.stringify(params),
