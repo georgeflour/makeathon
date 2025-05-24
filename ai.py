@@ -1,6 +1,9 @@
 import os
 from dotenv import load_dotenv
 from openai import AzureOpenAI
+import json
+import re
+import uuid
 
 def ai_call(
 
@@ -207,12 +210,58 @@ def ai_call(
         print(f"Error during API Azure call: {e}")
         return f"API Error: {e}"
     
+
+def ai_bundles_to_json(ai_output):
+    # Adjust the bundle block pattern for optional trailing spaces and allow for empty lines between bundles
+    bundle_pattern = re.compile(
+        r'- \*\*Bundle Name\*\*: (.*?)\s*\n- \*\*Products\*\*:\s*\n(.*?)(?=\n- \*\*Bundle Name\*\*:|\Z)', 
+        re.DOTALL
+    )
+    # Allow for optional spaces before/after x in product line
+    product_pattern = re.compile(r'- ([^\n]+?)\s*x\s*(\d+)')
+    # Updated field patterns for possible extra spaces at the end of each line
+    field_patterns = {
+        "margin": re.compile(r'- \*\*Estimated Margin\*\*: ([\d.,]+)%\s*'),
+        "price": re.compile(r'- \*\*Price\*\*: €([\d.,]+)\s*'),
+        "duration": re.compile(r'- \*\*Duration\*\*: (.*?)\s*(?:\n|$)'),
+        "season": re.compile(r'- \*\*Season\*\*: (.*?)\s*(?:\n|$)'),
+        "rationale": re.compile(r'- \*\*Rationale\*\*: (.*?)(?:\s*\[doc\d+\])?(?:\n|$)'),
+    }
+
+    bundles = []
+    for bundle_match in bundle_pattern.finditer(ai_output):
+        name, bundle_block = bundle_match.groups()
+        # Extract products
+        products_block = bundle_block.split('- **Estimated Margin**:')[0]
+        products = [
+            {"item_name": m.group(1).strip(), "qty": int(m.group(2))}
+            for m in product_pattern.finditer(products_block)
+        ]
+        # Extract other fields
+        margin = field_patterns["margin"].search(bundle_block)
+        price = field_patterns["price"].search(bundle_block)
+        duration = field_patterns["duration"].search(bundle_block)
+        season = field_patterns["season"].search(bundle_block)
+        rationale = field_patterns["rationale"].search(bundle_block)
+        bundles.append({
+            "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
+            "name": name.strip(),
+            "items": products,
+            "price": float(price.group(1).replace(',', '.')) if price else None,
+            "profitMargin": f"{margin.group(1)}%" if margin else None,
+            "duration": duration.group(1).strip() if duration else None,
+            "season": season.group(1).strip() if season else None,
+            "rationale": rationale.group(1).strip() if rationale else None,
+        })
+    return {"bundles": bundles}
 # Uncomment the example you want to run
 if __name__ == '__main__':
 
     print("Ex 1  1: Default")
-    ai_call()
-
+    output =ai_call()
+    bundle_json = ai_bundles_to_json(output)
+    print(json.dumps(bundle_json, indent=2, ensure_ascii=False))
+    
     # print("\nEx 2: Specific product lower margin")
     # ai_call(
     #     product_to_clear="Timberland ανδρικό μονόχρωμο πουκάμισο ''Solid Poplin'' Μπλε Σκούρο 3X",
