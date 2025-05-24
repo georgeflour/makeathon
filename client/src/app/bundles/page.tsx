@@ -324,6 +324,30 @@ export default function BundlesPage() {
     return matchesSearch && matchesFilter
   })
 
+  const handleDelete = async (bundleId: string) => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/bundles/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bundle_id: bundleId }),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Server error response:', errorText)
+        throw new Error(`Server error: ${errorText || response.statusText}`)
+      }
+
+      // After successful deletion, refresh the bundles list
+      await fetchBundles()
+    } catch (error) {
+      console.error('Error deleting bundle:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete bundle')
+    }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -622,7 +646,11 @@ export default function BundlesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredBundles.map((bundle) => (
-            <BundleCard key={bundle.id} bundle={bundle} />
+            <BundleCard
+              key={bundle.id}
+              bundle={bundle}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
@@ -632,6 +660,7 @@ export default function BundlesPage() {
 
 interface BundleCardProps {
   bundle: Bundle
+  onDelete: (bundleId: string) => Promise<void>
 }
 
 interface ViewBundleModalProps {
@@ -774,7 +803,7 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
   )
 }
 
-function BundleCard({ bundle }: BundleCardProps) {
+function BundleCard({ bundle, onDelete }: BundleCardProps) {
   const [showViewModal, setShowViewModal] = useState(false)
 
   const getStatusColor = (status: string) => {
@@ -858,6 +887,7 @@ function BundleCard({ bundle }: BundleCardProps) {
               Edit
             </button>
             <button 
+              onClick={() => onDelete(bundle.id)}
               className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
             >
               <Trash2 className="h-3 w-3" />
