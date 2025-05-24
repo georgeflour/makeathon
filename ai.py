@@ -21,16 +21,6 @@ body = {
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What are the project milestones?"}
     ],
-    "dataSources": [
-        {
-            "type": "AzureBlobStorage",
-            "parameters": {
-                "endpoint": os.getenv("STORAGE_ENDPOINT"),
-                "container": os.getenv("STORAGE_CONTAINER"),
-                "credential": os.getenv("STORAGE_KEY"),
-            }
-        }
-    ]
 }
 
 response = requests.post(url, headers=headers, json=body)
