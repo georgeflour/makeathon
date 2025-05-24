@@ -2,7 +2,7 @@ import pandas as pd
 import json
 
 # Διαβάζεις όλα τα φύλλα
-excel_path = r'C:\Users\krist\OneDrive\Υπολογιστής\Makeathon\makeathon\Data.xlsx'
+excel_path = r'Orders.xlsx'
 sheets_dict = pd.read_excel(excel_path, sheet_name=None, engine='openpyxl')
 
 # Δημιουργείς ένα λεξικό για όλα τα φύλλα με μορφή JSON
@@ -12,7 +12,7 @@ all_data_json = {
 }
 
 # Αποθήκευση σε αρχείο JSON
-with open('data.json', 'w', encoding='utf-8') as f:
+with open('orders.json', 'w', encoding='utf-8') as f:
     json.dump(all_data_json, f, ensure_ascii=False, indent=4)
 
 print("Όλα τα φύλλα του Excel μετατράπηκαν σε JSON.")
