@@ -3,7 +3,9 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import HistGradientBoostingRegressor
-
+import joblib
+from datetime import datetime, timedelta
+import os
 # === 1. Φόρτωση JSON αρχείου ===
 
 with open("data.json", "r", encoding="utf-8") as f:
@@ -40,9 +42,41 @@ X = bundle_df[["avg_price", "stock"]].fillna(0).astype(int)
 y = bundle_df["total_sales"].fillna(0).astype(int)
 X = X.dropna()
 y = y.loc[X.index].dropna()  # Match y to filtered X
+timestamp_path = "last_trained.txt"
+model_path = "pricing_model.pkl"
 
-model = LinearRegression()
-model.fit(X, y)
+def get_last_trained():
+    if not os.path.exists(timestamp_path):
+        return None
+    with open(timestamp_path, "r") as f:
+        return datetime.fromisoformat(f.read().strip())
+
+def update_last_trained():
+    with open(timestamp_path, "w") as f:
+        f.write(datetime.now().isoformat())
+
+def model_outdated():
+    last = get_last_trained()
+    if not last:
+        return True
+    return datetime.now() - last > timedelta(hours=12)
+
+if model_outdated():
+    print("Training model...")
+    # === Train your model here ===
+    model = LinearRegression()
+    model.fit(X, y)
+    joblib.dump(model, model_path)
+    update_last_trained()
+elif os.path.exists(model_path):
+    model = joblib.load(model_path)
+    print("✅ Loaded pretrained model.")
+else:
+    # Train model as before
+    model = LinearRegression()
+    model.fit(X, y)
+    joblib.dump(model, model_path)
+    print("✅ Trained and saved new model.")
 
 # === 6. Συνάρτηση πρότασης τιμής ===
 def find_best_bundle_price(model, cost, stock, base_price):
