@@ -9,8 +9,6 @@ import {
   ArrowDownRight 
 } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import { apiClient } from '@/lib/api'
-import { useApi } from '@/hooks/useApi'
 
 interface DashboardStats {
   avgOrderValue: number
@@ -22,21 +20,52 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { data: stats, loading: statsLoading } = useApi<DashboardStats>(
-    () => apiClient.getOrderStats(),
-    []
-  )
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const mockStats: DashboardStats = {
-    avgOrderValue: 127.50,
-    totalRevenue: 45680,
-    activeBundles: 23,
-    stockAlerts: 7,
-    revenueChange: 12.5,
-    aovChange: 8.2
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const response = await fetch('http://127.0.0.1:5000/dashboard/stats')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      setStats(data)
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard stats')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const displayStats = stats || mockStats
+  useEffect(() => {
+    fetchDashboardStats()
+  }, [])
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-red-600 mb-2">Error loading dashboard:</p>
+            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={fetchDashboardStats}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -52,30 +81,30 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Average Order Value"
-          value={`€${displayStats.avgOrderValue.toFixed(2)}`}
-          change={displayStats.aovChange}
+          value={stats ? `€${stats.avgOrderValue.toFixed(2)}` : '-'}
+          change={stats?.aovChange}
           icon={<DollarSign className="h-6 w-6" />}
-          loading={statsLoading}
+          loading={loading}
         />
         <StatCard
           title="Total Revenue"
-          value={`€${displayStats.totalRevenue.toLocaleString()}`}
-          change={displayStats.revenueChange}
+          value={stats ? `€${stats.totalRevenue.toLocaleString()}` : '-'}
+          change={stats?.revenueChange}
           icon={<TrendingUp className="h-6 w-6" />}
-          loading={statsLoading}
+          loading={loading}
         />
         <StatCard
           title="Active Bundles"
-          value={displayStats.activeBundles.toString()}
+          value={stats ? stats.activeBundles.toString() : '-'}
           icon={<Package className="h-6 w-6" />}
-          loading={statsLoading}
+          loading={loading}
         />
         <StatCard
           title="Stock Alerts"
-          value={displayStats.stockAlerts.toString()}
+          value={stats ? stats.stockAlerts.toString() : '-'}
           icon={<AlertTriangle className="h-6 w-6" />}
           variant="warning"
-          loading={statsLoading}
+          loading={loading}
         />
       </div>
 
