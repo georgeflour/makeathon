@@ -49,7 +49,7 @@ def ai_call(
     print(f"Duration: {duration_for_prompt}")
 
     prompt = f"""
-    You are a **senior retail AI expert**. Your job is to generate product bundles that maximize revenue, optimize stock, and achieve business goals for a retail company. 
+    You are a **senior retail AI expert**. Your job is to generate product bundles that maximize revenue, optimize stock, and achieve business goals for a retail company.  
     **Your suggestions must use actual data from the provided dataset:** use each item's unit cost and price to calculate real bundle prices and profit margins. Do not assume the margin is always 35%—it must be computed per bundle, based on the included products and their prices.
 
     ---
@@ -60,6 +60,29 @@ def ai_call(
     - **Bundle Size**: {bundle_size_for_prompt or "Default (2–5 products)"}
     - **Target Profit Margin**: {profit_margin_for_prompt or "Default (35%)"}
     - **Duration (if given)**: {duration_for_prompt or "Estimate based on seasonality and stock"}
+
+    ---
+
+    ### PROFIT MARGIN RULES
+
+    > - **If the user has specified a target profit margin, always respect the user's input and calculate the bundle prices to match the requested margin as closely as possible.**  
+    > - **If the objective is “Max Cart” and the user has not explicitly set a margin, recommend a margin in the range 30–34% for optimal results, but always prioritize the user’s explicit request if given.**
+
+    ---
+
+    ### PRICING & MARGIN CORRELATION (Very Important!)
+
+    > - **The only variable that changes to achieve a lower profit margin is the price—unit costs remain fixed.**
+    > - **Profit margin and price are 100% correlated:**
+    >   - Example: If an item’s original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
+    >   - If a bundle requires a lower margin (e.g., 25%), the new price is calculated by keeping the unit cost fixed and reducing only the margin:  
+    >      - New Price = Unit Cost / (1 - Desired Margin Percentage)  
+    >      - For 25% margin: New Price = €65 / (1 - 0.25) = €86.67 (rounded as needed)
+    >   - **The margin profit reduction comes ONLY from price reduction. Never change costs.**
+    > - **For bundles with multiple items:**  
+    >   - Apply the same margin logic to each item in the bundle (cost stays fixed, margin/price change is proportional).
+    >   - **The bundle’s final profit margin is the average of all included items’ margins** (unless you have a specific per-bundle margin, then use that average).
+    >   - Always show both the bundle price and the computed average profit margin.
 
     ---
 
@@ -129,14 +152,13 @@ def ai_call(
     > - **Never return a truncated or incomplete bundle. If space is limited, return fewer bundles, but every bundle must be complete and correctly formatted.**
     > - **Never cut off a bundle at the end or omit any field—EVER. If you cannot fit 10 bundles, return as many as fit in the output limit, but each one MUST be fully complete.**
 
-
     ---
 
     ### INSTRUCTIONS
 
     - Suggest up to **10 feasible bundles**.
     - Use only product data provided (e.g., unit prices, costs, categories, sales history).
-    - **Calculate each bundle's margin and price realistically** using provided unit prices and desired discounts.
+    - **Calculate each bundle's margin and price strictly using the price-profit margin correlation described above.**
     - If no bundle type is specified, suggest the 10 highest-profit bundles you can find.
     - **Vary margin, price, duration, and season across bundles; never use the same values in all outputs.**
     - **Format output exactly as shown above.** Do **not** include any extra explanation or template text.
