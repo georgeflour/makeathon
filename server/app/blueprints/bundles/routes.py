@@ -19,6 +19,15 @@ def init_db():
          bundle_data TEXT NOT NULL,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
     ''')
+    
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS favorites
+        (id INTEGER PRIMARY KEY AUTOINCREMENT,
+         bundle_id TEXT NOT NULL,
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         UNIQUE(bundle_id))
+    ''')
+    
     conn.commit()
     conn.close()
 
@@ -138,3 +147,66 @@ def get_data_user():
         return jsonify(result), 200
     else:
         return jsonify({"error": "No bundles found"}), 404
+
+@bundles_bp.route("/bundles/favorite/<bundle_id>", methods=["GET"])
+def get_favorite_status(bundle_id):
+    try:
+        conn = get_db_connection()
+        result = conn.execute('SELECT id FROM favorites WHERE bundle_id = ?', (bundle_id,)).fetchone()
+        conn.close()
+        return jsonify({"is_favorite": bool(result)}), 200
+    except Exception as e:
+        print(f"Error getting favorite status: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bundles_bp.route("/bundles/favorite", methods=["POST"])
+def toggle_favorite():
+    try:
+        request_data = request.get_json()
+        bundle_id = request_data.get("bundle_id")
+        is_favorite = request_data.get("is_favorite")
+
+        if not bundle_id:
+            return jsonify({"error": "No bundle_id provided"}), 400
+
+        conn = get_db_connection()
+        if is_favorite:
+            conn.execute('INSERT OR IGNORE INTO favorites (bundle_id) VALUES (?)', (bundle_id,))
+        else:
+            conn.execute('DELETE FROM favorites WHERE bundle_id = ?', (bundle_id,))
+        
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "Favorite status updated successfully"}), 200
+    except Exception as e:
+        print(f"Error updating favorite status: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bundles_bp.route("/bundles/favorites", methods=["GET"])
+def get_favorite_bundles():
+    try:
+        conn = get_db_connection()
+        # Get the most recent bundle set
+        bundles_result = conn.execute('SELECT bundle_data FROM bundles ORDER BY created_at DESC LIMIT 1').fetchone()
+        
+        if not bundles_result:
+            return jsonify({"bundles": []}), 200
+
+        # Get all favorite bundle IDs
+        favorites = conn.execute('SELECT bundle_id FROM favorites').fetchall()
+        favorite_ids = [row['bundle_id'] for row in favorites]
+
+        # Parse the bundles data and filter for favorites
+        all_bundles = json.loads(bundles_result['bundle_data'])
+        favorite_bundles = {
+            "bundles": [
+                bundle for bundle in all_bundles['bundles']
+                if bundle['bundle_id'] in favorite_ids
+            ]
+        }
+
+        conn.close()
+        return jsonify(favorite_bundles), 200
+    except Exception as e:
+        print(f"Error getting favorite bundles: {str(e)}")
+        return jsonify({"error": str(e)}), 500

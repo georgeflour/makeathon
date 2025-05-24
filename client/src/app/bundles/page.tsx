@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
 // Updated type to match Flask backend response
-interface FlaskBundle {
+export interface FlaskBundle {
   bundle_id: string
   name: string
   items: {
@@ -19,7 +19,7 @@ interface FlaskBundle {
   rationale: string
 }
 
-interface FlaskResponse {
+export interface FlaskResponse {
   bundles: FlaskBundle[]
 }
 
@@ -32,7 +32,7 @@ interface InventoryItem {
 }
 
 // Transformed bundle type for UI
-interface Bundle {
+export interface Bundle {
   id: string
   name: string
   description: string
@@ -64,6 +64,103 @@ interface SearchParameters {
   bundle_type: 'all' | 'complementary' | 'volume' | 'thematic' | 'seasonal' | 'cross-sell'
 }
 
+  // Function to transform Flask data to UI format
+export const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
+    return flaskData.map(bundle => {
+    // Calculate original price based on profit margin
+    const profitMarginPercentage = parseInt(bundle.profitMargin) / 100
+    const originalPrice = bundle.price / (1 - profitMarginPercentage)
+    const discount = Math.round(((originalPrice - bundle.price) / originalPrice) * 100)
+
+    // Determine status based on season and duration
+      let status: 'active' | 'inactive' | 'scheduled'
+    const currentDate = new Date()
+    
+    if (bundle.duration === 'Until stock runs out') {
+      status = 'active'
+    } else if (!bundle.season) {
+        status = 'inactive'
+      } else {
+      const [startMonth, endMonth] = bundle.season.split('–')
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+      const currentMonth = months[currentDate.getMonth()]
+      
+      if (startMonth && endMonth) {
+        const startIdx = months.indexOf(startMonth)
+        const endIdx = months.indexOf(endMonth)
+        const currentIdx = months.indexOf(currentMonth)
+        
+        if (startIdx <= currentIdx && currentIdx <= endIdx) {
+        status = 'active'
+        } else if (currentIdx < startIdx) {
+          status = 'scheduled'
+        } else {
+          status = 'inactive'
+        }
+      } else {
+        status = bundle.season ? 'active' : 'inactive'
+      }
+      }
+
+      // Generate description based on items
+    const itemDescriptions = bundle.items.map(item => `${item.qty}x ${item.item_name}`).join(', ')
+    const description = `Bundle containing: ${itemDescriptions}`
+
+    // Determine bundle type based on items and rationale
+    let type: Bundle['type'] = 'all'
+    if (bundle.rationale.toLowerCase().includes('volume')) {
+        type = 'volume'
+    } else if (bundle.rationale.toLowerCase().includes('cross-sell')) {
+      type = 'cross-sell'
+    } else if (bundle.rationale.toLowerCase().includes('seasonal')) {
+      type = 'seasonal'
+    } else if (bundle.rationale.toLowerCase().includes('complementary')) {
+      type = 'complementary'
+    } else if (bundle.rationale.toLowerCase().includes('theme')) {
+        type = 'thematic'
+      }
+
+    // Calculate dates
+    const startDate = new Date()
+    let endDate = new Date()
+    if (bundle.duration !== 'Until stock runs out') {
+      const durationMatch = bundle.duration.match(/(\d+)\s+(week|month)s?/)
+      if (durationMatch) {
+        const [, amount, unit] = durationMatch
+        if (unit === 'week') {
+          endDate.setDate(endDate.getDate() + (parseInt(amount) * 7))
+        } else if (unit === 'month') {
+          endDate.setMonth(endDate.getMonth() + parseInt(amount))
+        }
+      }
+    } else {
+      endDate.setMonth(endDate.getMonth() + 6) // Default 6 months for "Until stock runs out"
+    }
+
+      return {
+        id: bundle.bundle_id,
+        name: bundle.name,
+        description,
+      products: bundle.items.map(item => item.item_name),
+      originalPrice: Math.round(originalPrice * 100) / 100,
+        bundlePrice: bundle.price,
+        discount,
+        type,
+        status,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      forecastedRevenue: bundle.price * 100, // Example forecast
+      actualRevenue: status === 'active' ? bundle.price * 75 : 0, // Example actual revenue
+      createdAt: startDate.toISOString(),
+        profitMargin: bundle.profitMargin,
+      itemCount: bundle.items.reduce((acc, item) => acc + item.qty, 0),
+      rationale: bundle.rationale,
+      duration: bundle.duration,
+      season: bundle.season
+    }
+  })
+}
+
 export default function BundlesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -84,103 +181,6 @@ export default function BundlesPage() {
   const [inventoryLoading, setInventoryLoading] = useState(false)
   const [inventoryError, setInventoryError] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-
-  // Function to transform Flask data to UI format
-  const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
-    return flaskData.map(bundle => {
-      // Calculate original price based on profit margin
-      const profitMarginPercentage = parseInt(bundle.profitMargin) / 100
-      const originalPrice = bundle.price / (1 - profitMarginPercentage)
-      const discount = Math.round(((originalPrice - bundle.price) / originalPrice) * 100)
-
-      // Determine status based on season and duration
-      let status: 'active' | 'inactive' | 'scheduled'
-      const currentDate = new Date()
-      
-      if (bundle.duration === 'Until stock runs out') {
-        status = 'active'
-      } else if (!bundle.season) {
-        status = 'inactive'
-      } else {
-        const [startMonth, endMonth] = bundle.season.split('–')
-        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-        const currentMonth = months[currentDate.getMonth()]
-        
-        if (startMonth && endMonth) {
-          const startIdx = months.indexOf(startMonth)
-          const endIdx = months.indexOf(endMonth)
-          const currentIdx = months.indexOf(currentMonth)
-          
-          if (startIdx <= currentIdx && currentIdx <= endIdx) {
-            status = 'active'
-          } else if (currentIdx < startIdx) {
-            status = 'scheduled'
-          } else {
-            status = 'inactive'
-          }
-        } else {
-          status = bundle.season ? 'active' : 'inactive'
-        }
-      }
-
-      // Generate description based on items
-      const itemDescriptions = bundle.items.map(item => `${item.qty}x ${item.item_name}`).join(', ')
-      const description = `Bundle containing: ${itemDescriptions}`
-
-      // Determine bundle type based on items and rationale
-      let type: Bundle['type'] = 'all'
-      if (bundle.rationale.toLowerCase().includes('volume')) {
-        type = 'volume'
-      } else if (bundle.rationale.toLowerCase().includes('cross-sell')) {
-        type = 'cross-sell'
-      } else if (bundle.rationale.toLowerCase().includes('seasonal')) {
-        type = 'seasonal'
-      } else if (bundle.rationale.toLowerCase().includes('complementary')) {
-        type = 'complementary'
-      } else if (bundle.rationale.toLowerCase().includes('theme')) {
-        type = 'thematic'
-      }
-
-      // Calculate dates
-      const startDate = new Date()
-      let endDate = new Date()
-      if (bundle.duration !== 'Until stock runs out') {
-        const durationMatch = bundle.duration.match(/(\d+)\s+(week|month)s?/)
-        if (durationMatch) {
-          const [, amount, unit] = durationMatch
-          if (unit === 'week') {
-            endDate.setDate(endDate.getDate() + (parseInt(amount) * 7))
-          } else if (unit === 'month') {
-            endDate.setMonth(endDate.getMonth() + parseInt(amount))
-          }
-        }
-      } else {
-        endDate.setMonth(endDate.getMonth() + 6) // Default 6 months for "Until stock runs out"
-      }
-
-      return {
-        id: bundle.bundle_id,
-        name: bundle.name,
-        description,
-        products: bundle.items.map(item => item.item_name),
-        originalPrice: Math.round(originalPrice * 100) / 100,
-        bundlePrice: bundle.price,
-        discount,
-        type,
-        status,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        forecastedRevenue: bundle.price * 100, // Example forecast
-        actualRevenue: status === 'active' ? bundle.price * 75 : 0, // Example actual revenue
-        createdAt: startDate.toISOString(),
-        profitMargin: bundle.profitMargin,
-        itemCount: bundle.items.reduce((acc, item) => acc + item.qty, 0),
-        rationale: bundle.rationale,
-        duration: bundle.duration,
-        season: bundle.season
-      }
-    })
-  }
 
   // Fetch inventory items
   const fetchInventoryItems = async () => {
@@ -279,8 +279,8 @@ export default function BundlesPage() {
       const data = await response.json()
       console.log('Received data from server:', data)
       
-      const transformedBundles = transformFlaskData(data.bundles)
-      setBundles(transformedBundles)
+        const transformedBundles = transformFlaskData(data.bundles)
+        setBundles(transformedBundles)
       setShowAdvancedSearch(false)
       setIsCustomSearch(false)
     } catch (err) {
@@ -362,22 +362,22 @@ export default function BundlesPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+          >
+            <Settings className="h-4 w-4" />
+            Advanced Search
+          </button>
+          
+          {isCustomSearch && (
             <button
-              onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+              onClick={resetToDefault}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
-              <Settings className="h-4 w-4" />
-              Advanced Search
+              Show All Bundles
             </button>
-            
-            {isCustomSearch && (
-              <button
-                onClick={resetToDefault}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Show All Bundles
-              </button>
-            )}
+          )}
           </div>
 
           <button
@@ -681,7 +681,7 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
     }
   }
 
-  return (
+    return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
@@ -693,7 +693,7 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
             ✕
           </button>
         </div>
-
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left Column - Bundle Details */}
           <div className="space-y-6">
@@ -783,11 +783,11 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Bundle Rationale</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {bundle.rationale || 'No rationale provided for this bundle.'}
-                </p>
+            {bundle.rationale || 'No rationale provided for this bundle.'}
+          </p>
               </div>
-            </div>
-
+        </div>
+        
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
               <div className="bg-gray-50 rounded-lg p-4">
@@ -797,14 +797,15 @@ function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
               </div>
             </div>
           </div>
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
 function BundleCard({ bundle, onDelete }: BundleCardProps) {
   const [showViewModal, setShowViewModal] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -827,74 +828,113 @@ function BundleCard({ bundle, onDelete }: BundleCardProps) {
     }
   }
 
+  const toggleFavorite = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/bundles/favorite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bundle_id: bundle.id,
+          is_favorite: !isFavorite
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status')
+      }
+
+      setIsFavorite(!isFavorite)
+    } catch (error) {
+      console.error('Error updating favorite status:', error)
+    }
+  }
+
+  // Fetch initial favorite status
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      try {
+        const response = await fetch(`http://127.0.0.1:5000/bundles/favorite/${bundle.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setIsFavorite(data.is_favorite)
+        }
+      } catch (error) {
+        console.error('Error fetching favorite status:', error)
+      }
+    }
+    fetchFavoriteStatus()
+  }, [bundle.id])
+
   return (
     <>
-      <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-        <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
-            {bundle.status}
-          </span>
+    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
+          {bundle.status}
+        </span>
+      </div>
+      
+      <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
+      
+      <div className="space-y-2 mb-4">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Type:</span>
+          <span className="font-medium">{getTypeLabel(bundle.type)}</span>
         </div>
-        
-        <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
-        
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Type:</span>
-            <span className="font-medium">{getTypeLabel(bundle.type)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Items:</span>
-            <span className="font-medium">{bundle.itemCount}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Original Price:</span>
-            <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Bundle Price:</span>
-            <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Discount:</span>
-            <span className="font-medium text-red-600">{bundle.discount}%</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Profit Margin:</span>
-            <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
-          </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Items:</span>
+          <span className="font-medium">{bundle.itemCount}</span>
         </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Original Price:</span>
+          <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Bundle Price:</span>
+          <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Discount:</span>
+          <span className="font-medium text-red-600">{bundle.discount}%</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Profit Margin:</span>
+          <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
+        </div>
+      </div>
 
-        <div className="border-t pt-4">
-          <div className="flex justify-between text-xs text-gray-500 mb-3">
-            <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
-            <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
-          </div>
-          
-          <div className="flex space-x-2">
-            <button 
+      <div className="border-t pt-4">
+        <div className="flex justify-between text-xs text-gray-500 mb-3">
+          <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
+          <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
+        </div>
+        
+        <div className="flex space-x-2">
+          <button 
               onClick={() => setShowViewModal(true)}
-              className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
-            >
-              <Eye className="h-3 w-3" />
-              View
-            </button>
+            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+          >
+            <Eye className="h-3 w-3" />
+            View
+          </button>
             <button 
-              className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
+              onClick={toggleFavorite}
+              className={`flex-1 px-4 py-2 text-sm ${isFavorite ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'} hover:bg-red-200 rounded-md transition-colors flex items-center justify-center gap-1`}
             >
-              <Edit className="h-3 w-3" />
-              Edit
-            </button>
+              {isFavorite ? '❤️' : '🤍'}
+          </button>
             <button 
               onClick={() => onDelete(bundle.id)}
               className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors"
             >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          </div>
+            <Trash2 className="h-3 w-3" />
+          </button>
         </div>
       </div>
+    </div>
 
       {showViewModal && (
         <ViewBundleModal
