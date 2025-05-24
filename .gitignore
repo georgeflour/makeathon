@@ -1,20 +1,9 @@
-venv/
-env/
-ENV/
-.env
-
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+data.json
+*.json
 
 *.log
 logs/
+db_operations.log
 
-*.db
-
-
-.env
-.env.local
-.env.*.local
+Orders.xlsx
+*.xlsx
