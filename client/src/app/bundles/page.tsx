@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Search, Filter, Edit, Trash2, ArrowLeft, Settings } from 'lucide-react'
-import { Plus, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import { Search, Filter, Edit, Trash2, Settings, Plus, Eye } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 
@@ -142,42 +141,6 @@ export default function BundlesPage() {
       setInventoryLoading(true)
       setInventoryError(null)
       
-      // const response = await fetch('http://localhost:5000/inventory', {
-      //   method: 'GET',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      // })
-
-      // if (!response.ok) {
-      //   throw new Error(`HTTP error! status: ${response.status}`)
-      // }
-
-      // const data = await response.json()
-      
-      // // Transform the inventory data based on the actual structure
-      // // Adjust this based on your actual inventory response format
-      // let items: InventoryItem[] = []
-      
-      // if (Array.isArray(data)) {
-      //   items = data.map((item: any) => ({
-      //     item_id: item.index || item.id || item.Item_ID,
-      //     name: item.title || item.Item_Name || item.title || `Item ${item.item_id || item.id}`,
-      //     category: item.category || item.classification,
-      //     price: item.price || item.Price
-      //   }))
-      // } else if (data.items && Array.isArray(data.items)) {
-      //   items = data.items.map((item: any) => ({
-      //     item_id: item.index || item.id || item.Item_ID,
-      //     name: item.title || item.Item_Name || item.title || `Item ${item.item_id || item.id}`,
-      //     category: item.category || item.classification,
-      //     price: item.price || item.Price
-      //   }))
-      // } else {
-      //   // If the response structure is different, handle accordingly
-      //   console.log('Inventory response:', data)
-      //   items = []
-      // }
       const response = await fetch('http://localhost:5000/inventory-dropdown', {
         method: 'GET',
         headers: {
@@ -610,6 +573,8 @@ interface BundleCardProps {
 }
 
 function BundleCard({ bundle }: BundleCardProps) {
+  const [isFlipped, setIsFlipped] = useState(false)
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800'
@@ -704,42 +669,6 @@ function BundleCard({ bundle }: BundleCardProps) {
           <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
         </div>
       </div>
-    <div className="card hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-900">{bundle.name}</h3>
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bundle.status)}`}>
-          {bundle.status}
-        </span>
-      </div>
-      
-      <p className="text-gray-600 text-sm mb-4">{bundle.description}</p>
-      
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Type:</span>
-          <span className="font-medium">{getTypeLabel(bundle.type)}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Items:</span>
-          <span className="font-medium">{bundle.itemCount}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Original Price:</span>
-          <span className="line-through text-gray-400">€{bundle.originalPrice}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Bundle Price:</span>
-          <span className="font-bold text-green-600">€{bundle.bundlePrice}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Discount:</span>
-          <span className="font-medium text-red-600">{bundle.discount}%</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-500">Profit Margin:</span>
-          <span className="font-medium text-blue-600">{bundle.profitMargin}</span>
-        </div>
-      </div>
 
       <div className="border-t pt-4">
         <div className="flex justify-between text-xs text-gray-500 mb-3">
@@ -750,35 +679,18 @@ function BundleCard({ bundle }: BundleCardProps) {
         <div className="flex space-x-2">
           <button 
             onClick={handleViewClick}
-            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1"
           >
+            <Eye className="h-3 w-3" />
             View
           </button>
-          <button className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors">
+          <button className="flex-1 px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors flex items-center justify-center gap-1">
+            <Edit className="h-3 w-3" />
             Edit
           </button>
           <button className="px-3 py-2 text-sm bg-red-100 hover:bg-red-200 text-red-600 rounded-md transition-colors">
-            🗑
-          </button>
-        </div>
-      <div className="border-t pt-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-3">
-          <span>Start: {new Date(bundle.startDate).toLocaleDateString()}</span>
-          <span>End: {new Date(bundle.endDate).toLocaleDateString()}</span>
-        </div>
-        
-        <div className="flex space-x-2">
-          <Button size="sm" variant="secondary" className="flex-1">
-            <Eye className="h-3 w-3 mr-1" />
-            View
-          </Button>
-          <Button size="sm" variant="secondary" className="flex-1">
-            <Edit className="h-3 w-3 mr-1" />
-            Edit
-          </Button>
-          <Button size="sm" variant="danger">
             <Trash2 className="h-3 w-3" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>
