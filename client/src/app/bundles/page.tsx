@@ -175,7 +175,7 @@ export default function BundlesPage() {
       //   console.log('Inventory response:', data)
       //   items = []
       // }
-      const response = await fetch('http://localhost:5000/inventory', {
+      const response = await fetch('http://localhost:5000/inventory-dropdown', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
