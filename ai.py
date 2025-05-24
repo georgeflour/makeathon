@@ -21,15 +21,7 @@ completion = client.chat.completions.create(
     messages=[
         {
             "role": "user",
-            "content": "Who is DRI?",
-        },
-        {
-            "role": "assistant",
-            "content": "Give me an item from my blob storage dataset?"
-        },
-        {
-            "role": "user",
-            "content": "Opinion mining service"
+            "content": "Give me an item from my blob storage dataset."
         }
     ],
     extra_body={
@@ -49,9 +41,10 @@ completion = client.chat.completions.create(
     }
 )
 
-print(completion.model_dump_json(indent=2))
+print(completion.choices[0].message.content)
 
 # Render the citations (if present)
+"""
 content = completion.choices[0].message.content
 context = getattr(completion.choices[0].message, "context", {})
 
@@ -66,3 +59,4 @@ if context and "citations" in context:
         replaced_html = f"<a href='{url}' title='{title}\n{snippet}'>(See from file {filepath}, Part {chunk_id})</a>"
         content = content.replace(citation_reference, replaced_html)
 print(content)
+"""
