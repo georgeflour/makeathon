@@ -10,7 +10,7 @@ orders['SKU'] = orders['SKU'].astype(str)
 inventory['SKU'] = inventory['SKU'].astype(str)
 
 # Κρατάς τις μοναδικές τιμές SKU από το orders με τα πεδία που χρειάζεσαι
-sku_info = orders[['SKU', 'Item title', 'Category', 'Brand']].drop_duplicates()
+sku_info = orders[['SKU', 'Item title', 'Category', 'Brand', 'OriginalUnitPrice']].drop_duplicates()
 
 # Κάνεις merge τα δύο DataFrames με βάση το SKU
 inventory_enriched = inventory.merge(sku_info, on='SKU', how='left')
