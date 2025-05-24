@@ -311,7 +311,7 @@ export default function InventoryPage() {
                   Previous
                 </Button>
                 <span className="text-sm text-gray-600">
-                  Σελίδα {alertsPage} από {totalAlertPages}
+                  Page {alertsPage} from {totalAlertPages}
                 </span>
                 <Button size="sm" variant="secondary" onClick={goToNextAlerts} disabled={alertsPage === totalAlertPages}>
                   Next
