@@ -6,14 +6,11 @@ import re
 import uuid
 
 def ai_call(
-
     product_to_clear: str = None,
-    target_profit_margin_input = "Default (35%)", 
-    duration_input = "Estimate based on seasonality and stock", 
-    objective_input: str = "Increase average basket value by a target % (e.g., 10%)", 
-    bundle_type_input: str = "All", 
-    
-    
+    target_profit_margin_input: str = "Default (35%)",
+    duration_input: str = "Estimate based on seasonality and stock",
+    objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
+    bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2–5 products)"
 ):
     """
@@ -21,39 +18,20 @@ def ai_call(
 
     Args:
         product_to_clear (str, optional): Specific product to clear. Defaults to None.
-        target_profit_margin_input (any, optional) Defaults to "Default (35%)".
-        duration_input (any, optional): Duration of Bundle. Defaults to "Estimate based on seasonality and stock".
-        objective_input (str, optional):  Defaults to "Increase average basket value by a target % (e.g., 10%)".
-        bundle_type_input (str, optional):
-            Defaults to "All"
-        bundle_size_input (str, optional): 
-            Defaults to "Default (2–5 products)".
+        target_profit_margin_input (str, optional): Target profit margin. Defaults to "Default (35%)".
+        duration_input (str, optional): Duration of Bundle. Defaults to "Estimate based on seasonality and stock".
+        objective_input (str, optional): Bundle objective. Defaults to "Increase average basket value by a target % (e.g., 10%)".
+        bundle_type_input (str, optional): Type of bundle. Defaults to "All".
+        bundle_size_input (str, optional): Size of bundle. Defaults to "Default (2–5 products)".
     """
     load_dotenv()
 
-  
     bundle_type_for_prompt = bundle_type_input
-
-   
     bundle_size_for_prompt = bundle_size_input
-
-
-    if isinstance(target_profit_margin_input, (int, float)):
-        profit_margin_for_prompt = f"{target_profit_margin_input}%"
-    else:
-   
-        profit_margin_for_prompt = target_profit_margin_input
-
-  
-    if isinstance(duration_input, (int, float)):
-     
-        duration_for_prompt = f"{duration_input} weeks" if duration_input == 1 else f"{duration_input} weeks"
-    else:
-     
-        duration_for_prompt = duration_input
-
-
+    profit_margin_for_prompt = target_profit_margin_input
+    duration_for_prompt = duration_input
     objectives_for_prompt = objective_input
+
     if product_to_clear:
         if "Inventory Goal" in objective_input or \
            "clear specified product(s)" in objective_input.lower() or \
@@ -63,7 +41,12 @@ def ai_call(
             objectives_for_prompt += f". Additionally, prioritize clearing {product_to_clear} from stock."
         else: 
             objectives_for_prompt = f"Inventory Goal: Clear {product_to_clear} from stock."
- 
+
+    print(f"Bundle Type: {bundle_type_for_prompt}")
+    print(f"Objectives: {objectives_for_prompt}")
+    print(f"Bundle Size: {bundle_size_for_prompt}")
+    print(f"Target Profit Margin: {profit_margin_for_prompt}")
+    print(f"Duration: {duration_for_prompt}")
 
     prompt = f"""
     You are a **senior retail AI expert**. Your job is to generate product bundles that maximize revenue, optimize stock, and achieve business goals for a retail company. 
@@ -103,7 +86,7 @@ def ai_call(
     Example: Popular Sneakers + Expensive Bag (low sales)
 
     #### LEFTOVER
-    Group slow-moving or “leftover” products. The goal is inventory clearance; profit margin may be lower or even negative for these bundles.
+    Group slow-moving or "leftover" products. The goal is inventory clearance; profit margin may be lower or even negative for these bundles.
 
     ---
 
@@ -113,11 +96,11 @@ def ai_call(
     - **Inventory Goal:** Clear specified product(s) from stock
 
     #### Bundle Constraints
-    - Respect requested margin (typically up to 35%). **Never propose a margin higher than the given target; if it’s not feasible, maximize margin just below the target.**
+    - Respect requested margin (typically up to 35%). **Never propose a margin higher than the given target; if it's not feasible, maximize margin just below the target.**
     - Each bundle must include 2–5 items (default: 2, unless user specifies more).
     - Set **Bundle Price** using the actual (discounted or final) unit prices of included products, applying a realistic overall discount if necessary.
     - Set **Estimated Profit Margin** for the entire bundle, based on costs and price.
-    - Recommend a **Duration** (e.g., "3 weeks", "2 months", "Until stock runs out")—this is the promotion’s *length*, and should vary realistically between bundles based on the products, inventory, or customer need.
+    - Recommend a **Duration** (e.g., "3 weeks", "2 months", "Until stock runs out")—this is the promotion's *length*, and should vary realistically between bundles based on the products, inventory, or customer need.
     - Set a **Season** (e.g., "Spring", "Summer", "Holiday", "May–August")—set only when *relevant* for the bundle; avoid using the same season for every bundle.
     - Make sure **Duration** and **Season** are not always the same and do not contradict each other. Not every bundle needs both a specific season and a set duration.
 
@@ -138,7 +121,7 @@ def ai_call(
     - **Rationale**: (Explain why these products are grouped, how this bundle meets the business goal, and clarify why margin and duration were chosen.)
 
     > **Important Formatting Rules:**  
-    > - **Never repeat the same duration, season, or margin for all bundles. Vary these fields realistically and according to the bundle’s logic and data.**
+    > - **Never repeat the same duration, season, or margin for all bundles. Vary these fields realistically and according to the bundle's logic and data.**
     > - **Do not exceed the requested profit margin. If necessary, go as high as possible under the target.**
     > - **Rationales must show clear, business-driven logic (not just repeat the type definition).**
     > - **Never include extra commentary or template instructions in your answer.**
@@ -153,7 +136,7 @@ def ai_call(
 
     - Suggest up to **10 feasible bundles**.
     - Use only product data provided (e.g., unit prices, costs, categories, sales history).
-    - **Calculate each bundle’s margin and price realistically** using provided unit prices and desired discounts.
+    - **Calculate each bundle's margin and price realistically** using provided unit prices and desired discounts.
     - If no bundle type is specified, suggest the 10 highest-profit bundles you can find.
     - **Vary margin, price, duration, and season across bundles; never use the same values in all outputs.**
     - **Format output exactly as shown above.** Do **not** include any extra explanation or template text.
@@ -256,10 +239,22 @@ def ai_bundles_to_json(ai_output):
     return {"bundles": bundles}
 
 
-def get_results_from_ai(product_name=None, profit_margin=0, objective="Max Cart", quantity=2, duration="1 month", bundle_type="all"):
-    # Check here the arguments passed from the frontend
-
-    output = ai_call()
+def get_results_from_ai(
+    product_to_clear: str = None,
+    target_profit_margin_input: str = "Default (35%)",
+    duration_input: str = "Estimate based on seasonality and stock",
+    objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
+    bundle_type_input: str = "All",
+    bundle_size_input: str = "Default (2–5 products)"
+):
+    output = ai_call(
+        product_to_clear=product_to_clear,
+        target_profit_margin_input=target_profit_margin_input,
+        duration_input=duration_input,
+        objective_input=objective_input,
+        bundle_type_input=bundle_type_input,
+        bundle_size_input=bundle_size_input
+    )
     bundle_json = ai_bundles_to_json(output)
     return bundle_json
     
