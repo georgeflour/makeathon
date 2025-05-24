@@ -1,9 +1,3 @@
-
-
-# ---------------------------------------------------------------------------------------- #
-"""
-Here the response from the AI
-"""
 import os
 from dotenv import load_dotenv
 from openai import AzureOpenAI
@@ -262,10 +256,10 @@ def ai_bundles_to_json(ai_output):
     return {"bundles": bundles}
 
 
-def get_results_from_ai():
+def get_results_from_ai(product_name=None, profit_margin=0, objective="Max Cart", quantity=2, duration="1 month", bundle_type="all"):
+    # Check here the arguments passed from the frontend
+
     output = ai_call()
     bundle_json = ai_bundles_to_json(output)
     return bundle_json
-
-
-# Render the citations (if present)
+    

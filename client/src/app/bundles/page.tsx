@@ -54,7 +54,7 @@ interface Bundle {
 
 // Search parameters interface
 interface SearchParameters {
-  product_id: string
+  product_name: string
   profit_margin: number
   objective: 'Max Cart' | 'Sell Out'
   quantity: number
@@ -70,7 +70,7 @@ export default function BundlesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
   const [searchParameters, setSearchParameters] = useState<SearchParameters>({
-    product_id: '',
+    product_name: '',
     profit_margin: 15,
     objective: 'Max Cart',
     quantity: 2,
@@ -284,7 +284,7 @@ export default function BundlesPage() {
     fetchBundles()
     setShowAdvancedSearch(false)
     setSearchParameters({
-      product_id: '',
+      product_name: '',
       profit_margin: 15,
       objective: 'Max Cart',
       quantity: 2,
@@ -383,8 +383,8 @@ export default function BundlesPage() {
                   </div>
                 ) : (
                   <select
-                    value={searchParameters.product_id}
-                    onChange={(e) => setSearchParameters({...searchParameters, product_id: e.target.value})}
+                    value={searchParameters.product_name}
+                    onChange={(e) => setSearchParameters({...searchParameters, product_name: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent max-h-40 overflow-y-auto"
                     style={{ maxHeight: '10rem' }}
                   >
@@ -480,6 +480,7 @@ export default function BundlesPage() {
                   onChange={(e) => setSearchParameters({...searchParameters, bundle_type: e.target.value as Bundle['type']})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
+                  <option value="all">Default</option>
                   <option value="complementary">Complementary</option>
                   <option value="thematic">Thematic</option>
                   <option value="seasonal">Seasonal</option>
@@ -552,12 +553,12 @@ export default function BundlesPage() {
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-blue-800 text-sm">
             Showing results for custom search
-            {searchParameters.product_id && (
+            {searchParameters.product_name && (
               <>
-                {' '}with Product ID: <strong>{searchParameters.product_id}</strong>
-                {inventoryItems.find(item => item.item_id === searchParameters.product_id) && (
+                {' '}with Product ID: <strong>{searchParameters.product_name}</strong>
+                {inventoryItems.find(item => item.item_id === searchParameters.product_name) && (
                   <span className="ml-1">
-                    ({inventoryItems.find(item => item.item_id === searchParameters.product_id)?.name})
+                    ({inventoryItems.find(item => item.item_id === searchParameters.product_name)?.name})
                   </span>
                 )}
               </>
@@ -636,6 +637,7 @@ function BundleCard({ bundle }: BundleCardProps) {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
+      case 'all': return 'Default'
       case 'complementary': return 'Complementary'
       case 'thematic': return 'Thematic'
       case 'volume': return 'Volume'
@@ -746,6 +748,148 @@ function BundleCard({ bundle }: BundleCardProps) {
             <Trash2 className="h-3 w-3" />
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+interface CreateBundleModalProps {
+  onClose: () => void
+  onSubmit: () => void
+}
+
+function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    type: 'all' as Bundle['type'],
+    startDate: '',
+    endDate: '',
+    price: '',
+    originalPrice: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      // Replace with your Flask backend URL for creating bundles
+      const response = await fetch('http://127.0.0.1:5000/api/bundles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          price: parseFloat(formData.price),
+          OriginalPrice: parseFloat(formData.originalPrice),
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          // Add other fields as needed by your Flask API
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      // Refresh the bundles list
+      onSubmit()
+      onClose()
+    } catch (error) {
+      console.error('Error creating bundle:', error)
+      // You might want to show an error message to the user
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Bundle</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Bundle Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Original Price (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.originalPrice}
+                onChange={(e) => setFormData({...formData, originalPrice: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bundle Price (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.price}
+                onChange={(e) => setFormData({...formData, price: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Creating...' : 'Create Bundle'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )
