@@ -47,6 +47,7 @@ An intelligent e-commerce solution that leverages AI to create optimal product b
 
 ### Note
 - Other tools like docker and github actions where used but because of the makeathon's limited time, did not manage to be delivered operational on time. For the competition's sake they are still published in the repository, so that judges can check their usage and the effort.
+- The project structure on the app presented to the judges is based on the server and client directories. The rest files make the architecture messy but are provided to show the rest of the work done during the makeathon.
   
 ## 🚀 Getting Started
 
