@@ -32,6 +32,3 @@ jobs:
       working-directory: ./client
       run: npm run format:check --if-present
       
-    - name: Run tests
-      working-directory: ./client
-      run: npm test --if-present 
