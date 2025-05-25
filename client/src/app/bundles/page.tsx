@@ -197,7 +197,7 @@ export default function BundlesPage() {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
   const [searchParameters, setSearchParameters] = useState<SearchParameters>({
     product_name: '',
-    profit_margin: 15,
+    profit_margin: 35,
     objective: 'Max Cart',
     quantity: 2,
     timeframe: '1 month',
@@ -273,7 +273,11 @@ export default function BundlesPage() {
       }
 
       const data: FlaskResponse = await response.json()
-      const transformedBundles = transformFlaskData(data.bundles)
+      // Filter out bundles with less than 2 items before transforming
+      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
+        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      )
+      const transformedBundles = transformFlaskData(validBundles)
       setBundles(transformedBundles)
       setIsCustomSearch(false)
     } catch (err) {
@@ -284,8 +288,42 @@ export default function BundlesPage() {
     }
   }
 
-  // Generate new bundles
-  const generateBundles = async () => {
+  // Generate bundles with default parameters (for main button)
+  const generateDefaultBundles = async () => {
+    try {
+      setIsGenerating(true)
+      setLoading(true)
+
+      const response = await fetch('http://127.0.0.1:5000/bundles', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: FlaskResponse = await response.json()
+      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
+        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      )
+
+      const transformedBundles = transformFlaskData(validBundles)
+      setBundles(transformedBundles)
+      setIsCustomSearch(false)
+    } catch (err) {
+      console.error('Error generating bundles:', err)
+      setError(err instanceof Error ? err.message : 'Error loading bundles. Please try again.')
+    } finally {
+      setIsGenerating(false)
+      setLoading(false)
+    }
+  }
+
+  // Generate bundles with custom parameters (for advanced search)
+  const generateCustomBundles = async () => {
     try {
       setIsGenerating(true)
       setLoading(true)
@@ -307,10 +345,14 @@ export default function BundlesPage() {
       const data = await response.json()
       console.log('Received data from server:', data)
 
-      const transformedBundles = transformFlaskData(data.bundles)
+      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
+        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      )
+
+      const transformedBundles = transformFlaskData(validBundles)
       setBundles(transformedBundles)
       setShowAdvancedSearch(false)
-      setIsCustomSearch(false)
+      setIsCustomSearch(true)
     } catch (err) {
       console.error('Error generating bundles:', err)
       setError(err instanceof Error ? err.message : 'Error loading bundles. Please try again.')
@@ -326,7 +368,7 @@ export default function BundlesPage() {
     setShowAdvancedSearch(false)
     setSearchParameters({
       product_name: '',
-      profit_margin: 15,
+      profit_margin: 35,
       objective: 'Max Cart',
       quantity: 2,
       timeframe: '1 month',
@@ -410,7 +452,7 @@ export default function BundlesPage() {
           </div>
 
           <button
-            onClick={generateBundles}
+            onClick={generateDefaultBundles}
             disabled={isGenerating}
             className='relative overflow-hidden bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none group'
           >
@@ -575,12 +617,12 @@ export default function BundlesPage() {
 
             <div className='flex gap-3'>
               <button
-                onClick={generateBundles}
+                onClick={generateCustomBundles}
                 disabled={loading}
                 className='px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg transition-colors flex items-center gap-2'
               >
                 <Search className='h-4 w-4' />
-                Generate Bundles
+                Generate Custom Bundles
               </button>
               <button
                 onClick={() => setShowAdvancedSearch(false)}
@@ -677,7 +719,7 @@ export default function BundlesPage() {
             <p className='text-red-600 mb-2'>Error loading bundles:</p>
             <p className='text-sm text-gray-600 mb-4'>{error}</p>
             <button
-              onClick={isCustomSearch ? generateBundles : fetchBundles}
+              onClick={isCustomSearch ? generateCustomBundles : fetchBundles}
               className='px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors'
             >
               Retry
