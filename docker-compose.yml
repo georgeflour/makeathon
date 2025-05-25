@@ -1,0 +1,47 @@
+services:
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - NODE_ENV=development
+    depends_on:
+      - server
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./server:/app
+      - /app/__pycache__
+    environment:
+      - FLASK_APP=app
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - AZURE_KEY=${AZURE_KEY}
+      - ENDPOINT=${ENDPOINT}
+      - SEARCH_KEY=${SEARCH_KEY}
+      - SEARCH_ENDPOINT=${SEARCH_ENDPOINT}
+      - STORAGE_ENDPOINT=${STORAGE_ENDPOINT}
+      - STORAGE_KEY=${STORAGE_KEY}
+      - STORAGE_CONTAINER=${STORAGE_CONTAINER}
+      - SEARCH_INDEX_NAME=${SEARCH_INDEX_NAME}
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge 
