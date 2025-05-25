@@ -47,6 +47,17 @@ An intelligent e-commerce solution that leverages AI to create optimal product b
 
 ### Note
 - Other tools like docker and github actions where used but because of the makeathon's limited time, did not manage to be delivered operational on time. For the competition's sake they are still published in the repository, so that judges can check their usage and the effort.
+In order to not loose the AZURE_KEY we deleted the .env, so if judges need to run themselves the project, they need to create a .env file and add the elements below
+```
+AZURE_KEY=<your-key>
+ENDPOINT=<your-endpoint>
+STORAGE_ENDPOINT=<your-storage-endpoint
+STORAGE_KEY=<your-key>
+STORAGE_CONTAINER=<your-storage-container>
+SEARCH_KEY=<search-key>
+SEARCH_ENDPOINT=<search-endpoint>
+SEARCH_INDEX_NAME=<searche-index-name>
+```
 - The project structure on the app presented to the judges is based on the server and client directories. The rest files make the architecture messy but are provided to show the rest of the work done during the makeathon.
   
 ## 🚀 Getting Started
