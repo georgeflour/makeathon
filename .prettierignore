@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+__pycache__
+venv
+.env
+
+# Build outputs
+.next
+build
+dist
+coverage
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files
+package-lock.json
+yarn.lock
+
+# Cache
+.cache
+.pytest_cache
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.idea
+.vscode
+
+# System files
+.DS_Store
+Thumbs.db 
