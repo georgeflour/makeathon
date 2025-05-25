@@ -294,11 +294,12 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5000/bundles', {
-        method: 'GET',
+      const response = await fetch('http://127.0.0.1:5000/bundles/generate', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({}) // Send empty object for default parameters
       })
 
       if (!response.ok) {
