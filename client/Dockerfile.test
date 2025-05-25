@@ -1,0 +1,17 @@
+# Use Node.js LTS version
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with clean slate
+RUN npm install
+
+# Copy the rest of the client code
+COPY . .
+
+# Run tests and linting
+CMD ["sh", "-c", "npm run lint && npm run format:check && npm test"] 
