@@ -145,12 +145,6 @@ pytest
 ```
 
 
-## 📈 Performance
-
-- Optimized database queries
-- Regular performance monitoring
-- Efficient data processing
-
 
 ## 🙏 Acknowledgments
 
