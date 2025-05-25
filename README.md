@@ -157,6 +157,11 @@ npm test
 cd server
 pytest
 ```
+## App Demo 
+- here is a quick overview of basic functionalities of the application
+
+https://github.com/user-attachments/assets/1e215944-6f7e-4cce-81d4-8ffa11377185
+
 
 
 
