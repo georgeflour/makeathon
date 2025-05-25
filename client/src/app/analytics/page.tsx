@@ -178,7 +178,8 @@ export default function RevenueAnalyticsDashboard() {
   }, []);
 const [sum, setSum] = useState(0);
 const [error, setError] = useState(null);
-
+const [trendData, setTrendData] = useState(0);
+const [trendError, setTrendError] = useState(null);
 const fetchSum = async () => {
   try {
     setLoading(true);
@@ -204,19 +205,61 @@ const fetchSum = async () => {
     setLoading(false);
   }
 };
+const [predrev, setPredictedRevenue] = useState(0);
+const fetchPrediction = async () => {
+  try {
+    const response = await fetch('http://127.0.0.1:5000/analytics-prediction', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Prediction:', data);
+    setPredictedRevenue(data.predicted_revenue);  // assuming it's { "predicted_revenue": number }
+  } catch (err) {
+    setError(err.message);
+  }
+};
+const fetchTrend = async () => {
+  try {
+    const response = await fetch('http://127.0.0.1:5000/analytics-trend', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Trend data:', data);
+    setTrendData(data);
+  } catch (err) {
+    setTrendError(err.message);
+  }
+};
 useEffect(() => {
   fetchSum();
+  fetchPrediction();
+  fetchTrend();
 }, []);
 
 // Calculate actual revenue by summing existing actual values + the fetched total sum:
 const actualRevenue = sum
  
-  const predictedRevenue = revenueComparisonData
-    .filter(d => d.actual)
-    .reduce((sum, d) => sum + d.predicted, 0);
+  const predictedRevenue = predrev
   
-  const forecastAccuracy = accuracyData[accuracyData.length - 1]?.accuracy || 0;
+  const forecastAccuracy = predictedRevenue !== 0
+  ? Number((predictedRevenue / actualRevenue).toPrecision(7))
+  : 0;
   const avgVariance = revenueComparisonData
     .filter(d => d.variance !== null)
     .reduce((sum, d) => sum + Math.abs(d.variance), 0) / 
@@ -288,7 +331,7 @@ const actualRevenue = sum
         />
         <StatsCard
           title="Predicted Revenue"
-          value={`€${predictedRevenue.toLocaleString()}`}
+         value={predictedRevenue !== null ? `€${predictedRevenue.toLocaleString()}` : 'N/A'}
           subValue="Last 6 months"
           change={`${avgVariance.toFixed(1)}% avg variance`}
           icon={Target}
@@ -304,7 +347,7 @@ const actualRevenue = sum
         />
         <StatsCard
           title="Price Trend"
-          value="€49.85"
+          value={`€${trendData}`}
           subValue="Average selling price"
           change="+8.3% vs last quarter"
           trend="up"
