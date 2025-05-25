@@ -622,7 +622,7 @@ export default function BundlesPage() {
                 className='px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg transition-colors flex items-center gap-2'
               >
                 <Search className='h-4 w-4' />
-                Generate Custom Bundles
+                Search Bundles
               </button>
               <button
                 onClick={() => setShowAdvancedSearch(false)}
