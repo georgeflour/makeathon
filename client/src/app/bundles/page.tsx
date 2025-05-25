@@ -274,8 +274,9 @@ export default function BundlesPage() {
 
       const data: FlaskResponse = await response.json()
       // Filter out bundles with less than 2 items before transforming
-      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
-        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      const validBundles = data.bundles.filter(
+        (bundle: FlaskBundle) =>
+          bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
       )
       const transformedBundles = transformFlaskData(validBundles)
       setBundles(transformedBundles)
@@ -299,7 +300,7 @@ export default function BundlesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}) // Send empty object for default parameters
+        body: JSON.stringify({}), // Send empty object for default parameters
       })
 
       if (!response.ok) {
@@ -307,8 +308,9 @@ export default function BundlesPage() {
       }
 
       const data: FlaskResponse = await response.json()
-      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
-        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      const validBundles = data.bundles.filter(
+        (bundle: FlaskBundle) =>
+          bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
       )
 
       const transformedBundles = transformFlaskData(validBundles)
@@ -346,8 +348,9 @@ export default function BundlesPage() {
       const data = await response.json()
       console.log('Received data from server:', data)
 
-      const validBundles = data.bundles.filter((bundle: FlaskBundle) => 
-        bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
+      const validBundles = data.bundles.filter(
+        (bundle: FlaskBundle) =>
+          bundle.items.reduce((acc: number, item: any) => acc + item.qty, 0) >= 2
       )
 
       const transformedBundles = transformFlaskData(validBundles)
