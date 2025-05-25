@@ -65,7 +65,9 @@ cd makeathon
 
 2. Set up the Python environment:
 ```bash
-pip install -r requirements.txt
+python3 -m venv venv            
+source venv/bin/activate     
+pip3 install -r requirements.txt
 ```
 
 3. Set up the frontend:
