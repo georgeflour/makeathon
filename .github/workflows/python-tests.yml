@@ -7,34 +7,23 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-        
-    - name: Install dependencies
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build and run tests
+      working-directory: ./server
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install flake8 pytest pytest-cov
-        
-    - name: Run flake8
-      run: |
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        
-    - name: Run tests with pytest
-      run: |
-        pytest --cov=./ --cov-report=xml
-        
+        docker build -f Dockerfile.test -t backend-test .
+        docker run --rm backend-test
+    
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
-        file: ./coverage.xml
-        fail_ci_if_error: true 
+        file: ./server/coverage.xml
+        fail_ci_if_error: true
