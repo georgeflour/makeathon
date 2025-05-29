@@ -13,7 +13,7 @@ def ai_call(
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2–5 products)",
-    bundle_cust_segment: str = None
+    bundle_cust_segment_input = None
 ):
     """
     Calls Azure AI to create bundles
@@ -33,7 +33,7 @@ def ai_call(
     profit_margin_for_prompt = target_profit_margin_input
     duration_for_prompt = duration_input
     objectives_for_prompt = objective_input
-    customer_segmentation_for_prompt = bundle_cust_segment
+    customer_segmentation_for_prompt = bundle_cust_segment_input
 
     if product_to_clear:
         if (
@@ -54,6 +54,7 @@ def ai_call(
     print(f"Bundle Size: {bundle_size_for_prompt}")
     print(f"Target Profit Margin: {profit_margin_for_prompt}")
     print(f"Duration: {duration_for_prompt}")
+    print(f"Customer Segmentation: {customer_segmentation_for_prompt}")
 
     prompt = f"""
     You are a **senior retail AI expert**. Your job is to generate product bundles that maximize revenue, optimize stock, and achieve business goals for a retail company.  
@@ -75,7 +76,7 @@ def ai_call(
 ### PROFIT MARGIN RULES
 
 > - **If the user has specified a target profit margin, always respect the user's input as the maximum. Calculate bundle prices to match or approach this margin, but do not exceed it.**  
-> - **If the objective is “Max Cart” and the user has not explicitly set a margin, recommend a margin in the range 30–34% for optimal results, but always prioritize the user’s explicit request if given.**
+> - **If the objective is "Max Cart" and the user has not explicitly set a margin, recommend a margin in the range 30–34% for optimal results, but always prioritize the user's explicit request if given.**
 > - **Margins for different bundles MUST NOT all be the same. Each bundle must have a distinct estimated margin (unless absolutely impossible with the data provided).**
 > - **Margins should cover a realistic range:**  
 >   - For example, if the target margin is 25%, you might use margins such as 24%, 22%, 18%, 15%, etc. (as feasible per product costs)—**do not cluster all bundles at 15% or any other single value**.
@@ -89,14 +90,14 @@ def ai_call(
 
 > - **The only variable that changes to achieve a lower profit margin is the price—unit costs remain fixed.**
 > - **Profit margin and price are 100% correlated:**
->   - Example: If an item’s original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
+>   - Example: If an item's original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
 >   - If a bundle requires a lower margin (e.g., 25%), the new price is calculated by keeping the unit cost fixed and reducing only the margin:  
 >      - New Price = Unit Cost / (1 - Desired Margin Percentage)  
 >      - For 25% margin: New Price = €65 / (1 - 0.25) = €86.67 (rounded as needed)
 >   - **The margin profit reduction comes ONLY from price reduction. Never change costs.**
 > - **For bundles with multiple items:**  
 >   - Apply the same margin logic to each item in the bundle (cost stays fixed, margin/price change is proportional).
->   - **The bundle’s final profit margin is the average of all included items’ margins** (unless you have a specific per-bundle margin, then use that average).
+>   - **The bundle's final profit margin is the average of all included items' margins** (unless you have a specific per-bundle margin, then use that average).
 >   - Always show both the bundle price and the computed average profit margin.
 
 ---
@@ -291,18 +292,24 @@ def get_results_from_ai(
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2–5 products)",
-    bundle_cust_segment: str = None
+    bundle_cust_segment_input: str = None
 ):
-    output = ai_call(
-        product_to_clear=product_to_clear,
-        target_profit_margin_input=target_profit_margin_input,
-        duration_input=duration_input,
-        objective_input=objective_input,
-        bundle_type_input=bundle_type_input,
-        bundle_size_input=bundle_size_input,
-        bundle_cust_segment_input = bundle_cust_segment
-
-
-    )
-    bundle_json = ai_bundles_to_json(output)
-    return bundle_json
+    """
+    Get results from AI model
+    """
+    try:
+        # Call AI model
+        ai_output = ai_call(
+            product_to_clear=product_to_clear,
+            target_profit_margin_input=target_profit_margin_input,
+            duration_input=duration_input,
+            objective_input=objective_input,
+            bundle_type_input=bundle_type_input,
+            bundle_size_input=bundle_size_input,
+            bundle_cust_segment_input=bundle_cust_segment_input
+        )
+        bundle_json = ai_bundles_to_json(ai_output)
+        return bundle_json
+    except Exception as e:
+        print(f"Error during get_results_from_ai: {e}")
+        return f"API Error: {e}"
