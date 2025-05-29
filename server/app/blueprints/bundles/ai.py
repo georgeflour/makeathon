@@ -13,6 +13,7 @@ def ai_call(
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2–5 products)",
+    bundle_cust_segment: str = None
 ):
     """
     Calls Azure AI to create bundles
@@ -32,6 +33,7 @@ def ai_call(
     profit_margin_for_prompt = target_profit_margin_input
     duration_for_prompt = duration_input
     objectives_for_prompt = objective_input
+    customer_segmentation_for_prompt = bundle_cust_segment
 
     if product_to_clear:
         if (
@@ -66,6 +68,7 @@ def ai_call(
 - **Bundle Size**: {bundle_size_for_prompt or "Default (2–5 products)"}
 - **Target Profit Margin**: {profit_margin_for_prompt or "Default (35%)"}
 - **Duration (if given)**: {duration_for_prompt or "Estimate based on seasonality and stock"}
+- **Customer segmentation (if given)**: {customer_segmentation_for_prompt}
 
 ---
 
@@ -95,6 +98,18 @@ def ai_call(
 >   - Apply the same margin logic to each item in the bundle (cost stays fixed, margin/price change is proportional).
 >   - **The bundle’s final profit margin is the average of all included items’ margins** (unless you have a specific per-bundle margin, then use that average).
 >   - Always show both the bundle price and the computed average profit margin.
+
+---
+
+### CUSTOMER SEGMENTATION RULES
+
+> - If a **customer segment** is provided, all bundle recommendations **must be tailored specifically to that segment**.
+> - **Bundle products, names, pricing, and timing must reflect the behavior, preferences, and spending habits of the segment.** For example:
+>   - Young adults (18–25): trend-driven items, bold styles, affordable pricing.
+>   - Parents/families: practical combinations, multi-use items, strong value.
+>   - Premium shoppers: luxury brands, curated aesthetics, higher price points.
+> - **Never ignore segmentation**—even if it narrows product choices, bundles must make strategic sense for the defined audience.
+> - If **no segment is specified**, assume a general consumer profile and design bundles for broad appeal.
 
 ---
 
@@ -276,6 +291,7 @@ def get_results_from_ai(
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2–5 products)",
+    bundle_cust_segment: str = None
 ):
     output = ai_call(
         product_to_clear=product_to_clear,
@@ -284,6 +300,9 @@ def get_results_from_ai(
         objective_input=objective_input,
         bundle_type_input=bundle_type_input,
         bundle_size_input=bundle_size_input,
+        bundle_cust_segment_input = bundle_cust_segment
+
+
     )
     bundle_json = ai_bundles_to_json(output)
     return bundle_json
