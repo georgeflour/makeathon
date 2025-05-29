@@ -23,9 +23,8 @@ def get_prediction():
         return jsonify({"error": "Prediction failed"}), 500
     
 @analytics_bp.route("/analytics-trend", methods=["GET"])
-def get_price_trend():
+def get_trend_analysis():
     trend_result = get_price_trend()  
-    if trend_result and "trend_percentage" in trend_result:
+    if trend_result:
         return jsonify(trend_result), 200
-    else:
-        return jsonify({"error": "Trend identification failed"}), 500
+    return jsonify({"error": "Trend identification failed"}), 500

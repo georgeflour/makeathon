@@ -34,27 +34,24 @@ import {
   ReferenceLine
 } from 'recharts';
 
-// Sample data for predicted vs actual revenue
+// Update the sample data structure for the simple trend comparison
 const revenueComparisonData = [
-  { month: 'Jan', predicted: 45000, actual: 42000, variance: -6.7 },
-  { month: 'Feb', predicted: 52000, actual: 55000, variance: 5.8 },
-  { month: 'Mar', predicted: 48000, actual: 46500, variance: -3.1 },
-  { month: 'Apr', predicted: 61000, actual: 63500, variance: 4.1 },
-  { month: 'May', predicted: 55000, actual: 53200, variance: -3.3 },
-  { month: 'Jun', predicted: 67000, actual: 69800, variance: 4.2 },
-  { month: 'Jul', predicted: 72000, actual: null, variance: null }, // Future prediction
-  { month: 'Aug', predicted: 68000, actual: null, variance: null },
-  { month: 'Sep', predicted: 75000, actual: null, variance: null },
+  { point: 1, predicted: 45000, actual: 42000 },
+  { point: 2, predicted: 52000, actual: 55000 },
+  { point: 3, predicted: 48000, actual: 46500 },
+  { point: 4, predicted: 61000, actual: 63500 },
+  { point: 5, predicted: 55000, actual: 53200 },
+  { point: 6, predicted: 67000, actual: 69800 },
 ];
 
-// Price trend data
+// Price trend data with 35% margin
 const priceTrendData = [
-  { month: 'Jan', avgPrice: 45.20, avgCost: 28.50, margin: 37.0 },
-  { month: 'Feb', avgPrice: 47.80, avgCost: 29.20, margin: 38.9 },
-  { month: 'Mar', avgPrice: 46.50, avgCost: 28.80, margin: 38.1 },
-  { month: 'Apr', avgPrice: 49.20, avgCost: 30.10, margin: 38.8 },
-  { month: 'May', avgPrice: 48.90, avgCost: 29.80, margin: 39.1 },
-  { month: 'Jun', avgPrice: 51.30, avgCost: 31.20, margin: 39.2 },
+  { month: 'Jan', avgPrice: 45.20, avgCost: 29.38, margin: 35.0 },
+  { month: 'Feb', avgPrice: 47.80, avgCost: 31.07, margin: 35.0 },
+  { month: 'Mar', avgPrice: 46.50, avgCost: 30.23, margin: 35.0 },
+  { month: 'Apr', avgPrice: 49.20, avgCost: 31.98, margin: 35.0 },
+  { month: 'May', avgPrice: 48.90, avgCost: 31.79, margin: 35.0 },
+  { month: 'Jun', avgPrice: 51.30, avgCost: 33.35, margin: 35.0 },
 ];
 
 // Performance metrics
@@ -171,99 +168,124 @@ export default function RevenueAnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('6m');
   const [viewType, setViewType] = useState('overview');
+  const [sum, setSum] = useState(0);
+  const [error, setError] = useState(null);
+  const [trendData, setTrendData] = useState(0);
+  const [trendError, setTrendError] = useState(null);
+  const [revenueData, setRevenueData] = useState([]);
+  const [priceData, setPriceData] = useState(priceTrendData);
+  const [predrev, setPredictedRevenue] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
-const [sum, setSum] = useState(0);
-const [error, setError] = useState(null);
-const [trendData, setTrendData] = useState(0);
-const [trendError, setTrendError] = useState(null);
-const fetchSum = async () => {
-  try {
-    setLoading(true);
-    setError(null);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchSum(),
+          fetchPrediction(),
+          fetchTrend()
+        ]);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const response = await fetch('http://127.0.0.1:5000/analytics', {  // Make sure this URL matches backend route
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    fetchData();
+  }, []); // Empty dependency array means this only runs once on mount
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  const fetchSum = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch('http://127.0.0.1:5000/analytics', {  // Make sure this URL matches backend route
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data)
+      setSum(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const data = await response.json();
-    console.log(data)
-    setSum(data);
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-const [predrev, setPredictedRevenue] = useState(0);
-const fetchPrediction = async () => {
-  try {
-    const response = await fetch('http://127.0.0.1:5000/analytics-prediction', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const fetchPrediction = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/analytics-prediction', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Prediction:', data);
+      setPredictedRevenue(data.predicted_revenue);  // assuming it's { "predicted_revenue": number }
+    } catch (err) {
+      setError(err.message);
     }
+  };
 
-    const data = await response.json();
-    console.log('Prediction:', data);
-    setPredictedRevenue(data.predicted_revenue);  // assuming it's { "predicted_revenue": number }
-  } catch (err) {
-    setError(err.message);
-  }
-};
-const fetchTrend = async () => {
-  try {
-    const response = await fetch('http://127.0.0.1:5000/analytics-trend', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const fetchTrend = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/analytics-trend', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Trend data:', data);
+      setTrendData(data);
+    } catch (err) {
+      setTrendError(err.message);
     }
+  };
 
-    const data = await response.json();
-    console.log('Trend data:', data);
-    setTrendData(data);
-  } catch (err) {
-    setTrendError(err.message);
-  }
-};
-useEffect(() => {
-  fetchSum();
-  fetchPrediction();
-  fetchTrend();
-}, []);
+  useEffect(() => {
+    // Create simple trend data based on actual and predicted values
+    if (sum && predrev) {
+      const newRevenueData = [
+        { point: 1, sum: sum, predrev: predrev * 0.9 },
+        { point: 2, sum: sum * 1.1, predrev: predrev }
+      ];
+      setRevenueData(newRevenueData);
+    }
+  }, [sum, predrev, trendData]);
 
-// Calculate actual revenue by summing existing actual values + the fetched total sum:
-const actualRevenue = sum
- 
-  const predictedRevenue = predrev
-  
-  const forecastAccuracy = predictedRevenue !== 0
-  ? Number((predictedRevenue / actualRevenue).toPrecision(7))
-  : 0;
-  const avgVariance = revenueComparisonData
-    .filter(d => d.variance !== null)
-    .reduce((sum, d) => sum + Math.abs(d.variance), 0) / 
-    revenueComparisonData.filter(d => d.variance !== null).length;
+  // Calculate actual revenue by summing existing actual values + the fetched total sum:
+  const actualRevenue = sum
+   
+    const predictedRevenue = predrev
+    
+    const forecastAccuracy = predictedRevenue !== 0
+    ? Number((predictedRevenue / actualRevenue).toPrecision(7))
+    : 0;
+    const avgVariance = revenueComparisonData
+      .filter(d => d.variance !== null)
+      .reduce((sum, d) => sum + Math.abs(d.variance), 0) / 
+      revenueComparisonData.filter(d => d.variance !== null).length;
 
   if (loading) {
     return (
@@ -323,72 +345,59 @@ const actualRevenue = sum
         <StatsCard
           title="Actual Revenue"
           value={`€${actualRevenue.toLocaleString()}`}
-          subValue="Last 6 months"
-          change="+12.5% vs predicted"
-          trend="up"
+          subValue={`${trendData.current_month || 'Current month'}`}
+          change={trendData.trend_percentage ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% vs last month` : 'Calculating...'}
+          trend={trendData.trend_percentage > 0 ? 'up' : 'down'}
           icon={DollarSign}
-          variant="success"
+          variant={trendData.trend_percentage > 0 ? 'success' : 'danger'}
         />
         <StatsCard
           title="Predicted Revenue"
-         value={predictedRevenue !== null ? `€${predictedRevenue.toLocaleString()}` : 'N/A'}
-          subValue="Last 6 months"
-          change={`${avgVariance.toFixed(1)}% avg variance`}
+          value={predictedRevenue !== null ? `€${predictedRevenue.toLocaleString()}` : 'N/A'}
+          subValue="Current month"
+          change={`${((predictedRevenue - actualRevenue) / actualRevenue * 100).toFixed(1)}% variance`}
           icon={Target}
+          trend={predictedRevenue > actualRevenue ? 'up' : 'down'}
         />
         <StatsCard
           title="Forecast Accuracy"
           value={`${forecastAccuracy}%`}
           subValue="Current month"
-          change="+2.1% vs last month"
-          trend="up"
+          change={`vs ${trendData.previous_month || 'last month'}`}
+          trend={forecastAccuracy >= 90 ? 'up' : 'down'}
           icon={CheckCircle}
-          variant="success"
+          variant={forecastAccuracy >= 90 ? 'success' : 'warning'}
         />
         <StatsCard
           title="Price Trend"
-          value={`€${trendData}`}
-          subValue="Average selling price"
-          change="+8.3% vs last quarter"
-          trend="up"
+          value={`€${trendData.current_month_total?.toLocaleString() || '0'}`}
+          subValue={`vs €${trendData.previous_month_total?.toLocaleString() || '0'}`}
+          change={trendData.trend_percentage ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% growth` : 'Calculating...'}
+          trend={trendData.trend_percentage > 0 ? 'up' : 'down'}
           icon={TrendingUp}
+          variant={trendData.trend_percentage > 0 ? 'success' : 'danger'}
         />
       </div>
 
       {/* Main Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Prediction vs Actual */}
-        <Card title="Revenue: Predicted vs Actual" subtitle="Monthly comparison with variance indicators">
+        <Card title="Revenue: Predicted vs Actual" subtitle="Trend comparison">
           <ResponsiveContainer width="100%" height={350}>
-            <LineChart data={revenueComparisonData}>
+            <LineChart data={revenueData.length > 0 ? revenueData : revenueComparisonData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
+              <XAxis dataKey="point" label={{ value: 'Time', position: 'bottom' }} />
               <YAxis tickFormatter={(value) => `€${(value/1000).toFixed(0)}k`} />
               <Tooltip 
                 formatter={(value, name) => [
-                  value ? `€${value.toLocaleString()}` : 'N/A', 
-                  name === 'predicted' ? 'Predicted' : 'Actual'
-                ]} 
+                  `€${value.toLocaleString()}`,
+                  name === 'predicted' ? 'Predicted Revenue' : 'Actual Revenue'
+                ]}
+                labelFormatter={(label) => `Point ${label}`}
               />
               <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="predicted" 
-                stroke="#6366F1" 
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Predicted Revenue"
-                dot={{ fill: '#6366F1', strokeWidth: 2, r: 4 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="actual" 
-                stroke="#10B981" 
-                strokeWidth={2}
-                name="Actual Revenue"
-                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                connectNulls={false}
-              />
+              <Line type="monotone" dataKey="sum" stroke="#8884d8" name="Actual Revenue" />
+              <Line type="monotone" dataKey="predrev" stroke="#82ca9d" name="Predicted Revenue" />
             </LineChart>
           </ResponsiveContainer>
         </Card>
@@ -396,11 +405,11 @@ const actualRevenue = sum
         {/* Price Trends & Margins */}
         <Card title="Price Trends & Profit Margins" subtitle="Average selling price and margin evolution">
           <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={priceTrendData}>
+            <AreaChart data={priceData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis yAxisId="price" orientation="left" tickFormatter={(value) => `€${value}`} />
-              <YAxis yAxisId="margin" orientation="right" tickFormatter={(value) => `${value}%`} />
+              <YAxis yAxisId="margin" orientation="right" tickFormatter={(value) => `${value}%`} domain={[0, 40]} />
               <Tooltip 
                 formatter={(value, name) => {
                   if (name === 'margin') return [`${value}%`, 'Profit Margin'];
