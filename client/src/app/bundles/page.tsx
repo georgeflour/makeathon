@@ -68,7 +68,7 @@ export interface Bundle {
   season: string
 }
 
-// Search parameters interface
+// Updated SearchParameters interface with customer segmentation
 interface SearchParameters {
   product_name: string
   profit_margin: number
@@ -76,6 +76,7 @@ interface SearchParameters {
   quantity: number
   timeframe: string
   bundle_type: 'all' | 'complementary' | 'volume' | 'thematic' | 'seasonal' | 'cross-sell'
+  customer_segments: string[] // New parameter for customer segmentation
 }
 
 // Function to transform Flask data to UI format
@@ -196,13 +197,14 @@ export default function BundlesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false)
   const [searchParameters, setSearchParameters] = useState<SearchParameters>({
-    product_name: '',
-    profit_margin: 35,
-    objective: 'Max Cart',
-    quantity: 2,
-    timeframe: '1 month',
-    bundle_type: 'all',
-  })
+  product_name: '',
+  profit_margin: 35,
+  objective: 'Max Cart',
+  quantity: 2,
+  timeframe: '1 month',
+  bundle_type: 'all',
+  customer_segments: [] 
+})
   const [isCustomSearch, setIsCustomSearch] = useState(false)
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [inventoryLoading, setInventoryLoading] = useState(false)
@@ -367,19 +369,19 @@ export default function BundlesPage() {
   }
 
   // Reset to default bundles
-  const resetToDefault = () => {
-    fetchBundles()
-    setShowAdvancedSearch(false)
-    setSearchParameters({
-      product_name: '',
-      profit_margin: 35,
-      objective: 'Max Cart',
-      quantity: 2,
-      timeframe: '1 month',
-      bundle_type: 'all',
-    })
-  }
-
+const resetToDefault = () => {
+  fetchBundles()
+  setShowAdvancedSearch(false)
+  setSearchParameters({
+    product_name: '',
+    profit_margin: 35,
+    objective: 'Max Cart',
+    quantity: 2,
+    timeframe: '1 month',
+    bundle_type: 'all',
+    customer_segments: [] // Πρόσθεσε αυτή τη γραμμή
+  })
+}
   useEffect(() => {
     fetchBundles()
   }, [])
@@ -616,6 +618,76 @@ export default function BundlesPage() {
                   <option value='cross-sell'>Cross-sell</option>
                   <option value='volume'>Volume</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Customer Segmentation */}
+            <div className="col-span-full">
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Customer Segmentation
+              </label>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {searchParameters.customer_segments.map((segment, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
+                    >
+                      {segment}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSegments = searchParameters.customer_segments.filter((_, i) => i !== index);
+                          setSearchParameters({ ...searchParameters, customer_segments: newSegments });
+                        }}
+                        className="hover:bg-blue-200 rounded-full p-0.5"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value && !searchParameters.customer_segments.includes(e.target.value)) {
+                        setSearchParameters({
+                          ...searchParameters,
+                          customer_segments: [...searchParameters.customer_segments, e.target.value]
+                        });
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select customer segment...</option>
+                    <option value="premium">Premium Customers</option>
+                    <option value="budget">Budget-Conscious</option>
+                    <option value="frequent">Frequent Buyers</option>
+                    <option value="new">New Customers</option>
+                    <option value="seasonal">Seasonal Shoppers</option>
+                    <option value="bulk">Bulk Buyers</option>
+                    <option value="tech-savvy">Tech-Savvy</option>
+                    <option value="family">Family Oriented</option>
+                    <option value="professional">Professionals</option>
+                    <option value="students">Students</option>
+                    <option value="seniors">Senior Citizens</option>
+                    <option value="local">Local Community</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchParameters({ ...searchParameters, customer_segments: [] });
+                    }}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors text-sm"
+                    disabled={searchParameters.customer_segments.length === 0}
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Select one or more customer segments to target with this bundle
+                </p>
               </div>
             </div>
 
