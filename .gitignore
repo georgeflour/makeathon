@@ -8,7 +8,12 @@ db_operations.log
 Orders.xlsx
 *.xlsx
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
 *.db
 .DS_Store
+.env
+*.sqlite
+*.sqlite3
