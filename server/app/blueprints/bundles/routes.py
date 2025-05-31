@@ -73,6 +73,7 @@ def generate_bundles():
         )
         bundle_type_input = request_data.get("bundle_type_input", "All")
         bundle_size_input = request_data.get("bundle_size_input", "Default (2–5 products)")
+        bundle_cust_segment_input = request_data.get("bundle_cust_segment_input","None")
 
         result = get_results_from_ai(
             product_to_clear=product_to_clear,
@@ -81,6 +82,7 @@ def generate_bundles():
             objective_input=objective_input,
             bundle_type_input=bundle_type_input,
             bundle_size_input=bundle_size_input,
+            bundle_cust_segment_input=bundle_cust_segment_input,
         )
 
         if result:
@@ -151,6 +153,7 @@ def get_data_user():
     quantity = request_data.get("quantity", 2)
     timeframe = request_data.get("timeframe", "1 month")
     bundle_type = request_data.get("bundle_type", "all")
+    bundle_cust_segment_input = request_data.get("bundle_cust_segment_input")
 
     # Map frontend parameters to AI function parameters
     ai_parameters = {
@@ -164,6 +167,7 @@ def get_data_user():
         ),
         "bundle_type_input": bundle_type.capitalize(),
         "bundle_size_input": f"{quantity} products",
+        "bundle_cust_segment_input": bundle_cust_segment_input
     }
 
     result = get_results_from_ai(**ai_parameters)
