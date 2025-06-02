@@ -5,8 +5,8 @@ data.json
 logs/
 db_operations.log
 
+/*.xlsx
 Orders.xlsx
-*.xlsx
 __pycache__/
 *.pyc
 *.pyo

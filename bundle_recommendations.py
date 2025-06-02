@@ -1,8 +1,8 @@
 import pandas as pd
 
 # Load Orders and Pair Count files
-orders = pd.read_excel('Orders.xlsx')
-pairs = pd.read_excel('product_pair_counts.xlsx')
+orders = pd.read_excel('excel/Orders.xlsx')
+pairs = pd.read_excel('excel/product_pair_counts.xlsx')
 
 # Ensure SKUs are strings
 pairs['SKU_1'] = pairs['SKU_1'].astype(str)
@@ -48,7 +48,7 @@ for idx, row in strong_pairs.iterrows():
 suggestions = pd.DataFrame(results)
 
 # Save both original pairs and suggestions to the same Excel file as two sheets
-with pd.ExcelWriter('product_pair_counts.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+with pd.ExcelWriter('excel/product_pair_counts.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
     pairs.to_excel(writer, sheet_name='PairCounts', index=False)
     suggestions.to_excel(writer, sheet_name='BundleSuggestions', index=False)
 

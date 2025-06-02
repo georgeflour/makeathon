@@ -137,7 +137,7 @@ def load_data_from_excel():
     """Load data from Excel into PostgreSQL database"""
     logging.info("Starting data loading process...")
     try:
-        excel_path = "/Users/iasonaspassam/makeathon/Data.xlsx"
+        excel_path = os.path.join(os.path.dirname(__file__), "excel", "Data.xlsx")
         logging.info(f"Reading Excel file from: {excel_path}")
 
         xls = pd.ExcelFile(excel_path)

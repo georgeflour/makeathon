@@ -4,7 +4,7 @@ from collections import Counter
 import os
 
 # --- Load and prepare order data ---
-orders_df = pd.read_excel('Orders.xlsx')
+orders_df = pd.read_excel('excel/Orders.xlsx')
 orders_df['SKU'] = orders_df['SKU'].astype(str)
 
 # Map SKU to latest price and name (from most recent order)
@@ -50,7 +50,7 @@ for n in range(2, 6):
     sheets[f'Bundles_{n}'] = df
 
 # --- Write each bundle size to a different sheet ---
-outfile = 'product_bundle_suggestions.xlsx'
+outfile = 'excel/product_bundle_suggestions.xlsx'
 with pd.ExcelWriter(outfile, engine='openpyxl') as writer:
     for sheetname, df in sheets.items():
         df.to_excel(writer, sheet_name=sheetname, index=False)

@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from .ai import get_results_from_ai
+from .optimise_bundles import optimize_bundles
 import json
 from datetime import datetime
 import sqlite3
@@ -74,6 +75,18 @@ def generate_bundles():
         bundle_type_input = request_data.get("bundle_type_input", "All")
         bundle_size_input = request_data.get("bundle_size_input", "Default (2–5 products)")
 
+        # First, run optimize_bundles
+        margin_value = target_profit_margin_input.split()[0].strip("()%") if isinstance(target_profit_margin_input, str) else "35"
+        bundle_size = int(bundle_size_input.split()[0]) if isinstance(bundle_size_input, str) and bundle_size_input.split()[0].isdigit() else 10
+        
+        optimize_bundles(
+            product_to_clear=product_to_clear,
+            target_profit_margin_input=margin_value,
+            top_n=bundle_size,
+            related_skus=None  # Could be added as a frontend parameter if needed
+        )
+
+        # Then get AI results
         result = get_results_from_ai(
             product_to_clear=product_to_clear,
             target_profit_margin_input=target_profit_margin_input,
@@ -151,6 +164,14 @@ def get_data_user():
     quantity = request_data.get("quantity", 2)
     timeframe = request_data.get("timeframe", "1 month")
     bundle_type = request_data.get("bundle_type", "all")
+
+    # First, run optimize_bundles
+    optimize_bundles(
+        product_to_clear=product_name,
+        target_profit_margin_input=str(profit_margin),
+        top_n=quantity,
+        related_skus=None  # Could be added as a frontend parameter if needed
+    )
 
     # Map frontend parameters to AI function parameters
     ai_parameters = {

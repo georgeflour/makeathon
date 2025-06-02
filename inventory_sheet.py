@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Διαβάζεις το Excel
-xls = pd.ExcelFile("Data.xlsx")
+xls = pd.ExcelFile("excel/Data.xlsx")
 orders = pd.read_excel(xls, sheet_name="orders")
 inventory = pd.read_excel(xls, sheet_name="inventory")
 
@@ -16,5 +16,5 @@ sku_info = orders[["SKU", "Item title", "Category", "Brand", "OriginalUnitPrice"
 inventory_enriched = inventory.merge(sku_info, on="SKU", how="left")
 
 # Αποθήκευση σε νέο φύλλο Excel
-with pd.ExcelWriter("inventory_enriched.xlsx", engine="openpyxl") as writer:
+with pd.ExcelWriter("excel/inventory_enriched.xlsx", engine="openpyxl") as writer:
     inventory_enriched.to_excel(writer, sheet_name="inventory_enriched", index=False)
