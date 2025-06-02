@@ -3,7 +3,7 @@ import json
 import os
 import pandas as pd
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_PATH = os.path.join(BASE_DIR, "Data.xlsx")
+EXCEL_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "excel", "Data.xlsx")
 def get_totalsales():
     """
     This function is used to get a prediction from the AI model.

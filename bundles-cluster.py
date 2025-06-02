@@ -919,12 +919,12 @@ def create_sample_data():
         inventory_data.append({"SKU": f"SKU{i:04d}", "Quantity": np.random.randint(0, 100)})
 
     # Create Excel file
-    with pd.ExcelWriter("sample_ecommerce_data.xlsx", engine="openpyxl") as writer:
+    with pd.ExcelWriter("excel/sample_ecommerce_data.xlsx", engine="openpyxl") as writer:
         pd.DataFrame(orders_data).to_excel(writer, sheet_name="orders", index=False)
         pd.DataFrame(inventory_data).to_excel(writer, sheet_name="inventory", index=False)
 
-    print("Sample data created: sample_ecommerce_data.xlsx")
-    return "sample_ecommerce_data.xlsx"
+    print("Sample data created: excel/sample_ecommerce_data.xlsx")
+    return "excel/sample_ecommerce_data.xlsx"
 
 
 def demo_analysis():
@@ -991,4 +991,4 @@ if __name__ == "__main__":
 
     print("\nDemo completed! You can now use your own data by calling:")
     print("system = EcommerceBundlingSystem()")
-    print("system.run_complete_analysis('your_data.xlsx')")
+    print("system.run_complete_analysis('excel/your_data.xlsx')")

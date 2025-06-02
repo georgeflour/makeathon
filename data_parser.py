@@ -2,7 +2,7 @@ import pandas as pd
 import json
 
 # Διαβάζεις όλα τα φύλλα
-excel_path = r"inventory_enriched.xlsx"
+excel_path = r"excel/inventory_enriched.xlsx"
 sheets_dict = pd.read_excel(excel_path, sheet_name=None, engine="openpyxl")
 
 # Δημιουργείς ένα λεξικό για όλα τα φύλλα με μορφή JSON
