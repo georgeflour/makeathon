@@ -35,7 +35,7 @@ def ai_call(
  
 
     prompt = f"""
-    From the 3 first monts of the data set you have been given, what do you predict would be our revenue up to the end (time wise) of the data set? Answer using a prediction model. I expect you to give me an answer
+    From the 6 first months of the data set you have been given,utilise those total sales number excluding ofcourse any duplicate order numbers and predict our revenue up to the end (time wise) of the data set. Answer using a prediction model. I expect you to give me an answer
     in the form of an absolute number without any dialogue, prologue or epilogue, just the number by itself, your **temperature should be 0**. 
     
     The answer is expected to be as follows :' {{ "predicted_revenue": number }}' nothing else nothing more, no wording just this json like structure
