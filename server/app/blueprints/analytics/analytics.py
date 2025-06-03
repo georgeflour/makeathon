@@ -2,7 +2,7 @@ import os
 import json
 import pandas as pd
 
-EXCEL_PATH = "/app/excel/Data.xlsx"
+EXCEL_PATH = "excel/Data.xlsx"
 
 def get_totalsales():
     """
