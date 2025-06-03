@@ -109,7 +109,7 @@ export default function BundlesPage() {
     try {
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5000/bundles', {
+      const response = await fetch('http://127.0.0.1:5001/bundles', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5000/bundles/generate', {
+      const response = await fetch('http://127.0.0.1:5001/bundles/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5000/bundles/data', {
+      const response = await fetch('http://127.0.0.1:5001/bundles/data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ export default function BundlesPage() {
 
   const handleDelete = async (bundleId: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/bundles/delete', {
+      const response = await fetch('http://127.0.0.1:5001/bundles/delete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
