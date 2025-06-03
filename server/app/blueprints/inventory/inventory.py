@@ -1,8 +1,7 @@
 import pandas as pd
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "excel", "inventory_enriched.xlsx")
+EXCEL_PATH = "/app/excel/inventory_enriched.xlsx"
 
 
 def getInventory(dropdown=False):

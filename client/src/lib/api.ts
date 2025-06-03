@@ -1,3 +1,42 @@
+import { Bundle } from '@/types/bundles'
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  stock: number
+  category: string
+}
+
+interface InventoryAlert {
+  id: string
+  productId: string
+  type: 'low_stock' | 'out_of_stock'
+  message: string
+  createdAt: string
+}
+
+interface Order {
+  id: string
+  customerId: string
+  items: {
+    productId: string
+    quantity: number
+    price: number
+  }[]
+  total: number
+  status: 'pending' | 'completed' | 'cancelled'
+  createdAt: string
+}
+
+interface CustomerSegment {
+  id: string
+  name: string
+  size: number
+  averageOrderValue: number
+  description: string
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 class ApiClient {

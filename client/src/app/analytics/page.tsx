@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -29,17 +30,49 @@ import {
   PieChart,
   ReferenceLine,
   ResponsiveContainer,
-  ReferenceLine
+  Tooltip,
+  XAxis,
+  YAxis
 } from 'recharts';
 
-// Update the sample data structure for the simple trend comparison
-const revenueComparisonData = [
-  { point: 1, predicted: 45000, actual: 42000 },
-  { point: 2, predicted: 52000, actual: 55000 },
-  { point: 3, predicted: 48000, actual: 46500 },
-  { point: 4, predicted: 61000, actual: 63500 },
-  { point: 5, predicted: 55000, actual: 53200 },
-  { point: 6, predicted: 67000, actual: 69800 },
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  subValue?: string;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  icon: React.ElementType;
+  variant?: 'default' | 'success' | 'warning' | 'danger';
+}
+
+interface CardProps {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  variant?: keyof typeof variantClasses;
+  size?: keyof typeof sizeClasses;
+  className?: string;
+}
+
+interface RevenueComparisonItem {
+  point: number;
+  predicted: number;
+  actual: number;
+  variance: number;
+}
+
+const revenueComparisonData: RevenueComparisonItem[] = [
+  { point: 1, predicted: 45000, actual: 42000, variance: -3000 },
+  { point: 2, predicted: 52000, actual: 55000, variance: 3000 },
+  { point: 3, predicted: 48000, actual: 46500, variance: -1500 },
+  { point: 4, predicted: 61000, actual: 63500, variance: 2500 },
+  { point: 5, predicted: 55000, actual: 53200, variance: -1800 },
+  { point: 6, predicted: 67000, actual: 69800, variance: 2800 },
 ];
 
 // Price trend data with 35% margin
@@ -71,7 +104,18 @@ const accuracyData = [
   { month: 'Jun', accuracy: 93, confidence: 0.9 },
 ]
 
-function StatsCard({ title, value, subValue, change, trend, icon: Icon, variant = 'default' }) {
+const variantClasses = {
+  primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+  secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500',
+} as const;
+
+const sizeClasses = {
+  sm: 'px-3 py-2 text-sm',
+  md: 'px-4 py-2 text-sm',
+  lg: 'px-6 py-3 text-base',
+} as const;
+
+function StatsCard({ title, value, subValue, change, trend, icon: Icon, variant = 'default' }: StatsCardProps) {
   const getVariantStyles = () => {
     switch (variant) {
       case 'success':
@@ -140,7 +184,7 @@ function StatsCard({ title, value, subValue, change, trend, icon: Icon, variant 
   )
 }
 
-function Card({ title, subtitle, children, className = '' }) {
+function Card({ title, subtitle, children, className = '' }: CardProps) {
   return (
     <div className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
       {(title || subtitle) && (
@@ -154,20 +198,9 @@ function Card({ title, subtitle, children, className = '' }) {
   )
 }
 
-function Button({ children, variant = 'primary', size = 'md', className = '', ...props }) {
+function Button({ children, variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
   const baseClasses =
     'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2'
-
-  const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500',
-  }
-
-  const sizeClasses = {
-    sm: 'px-3 py-2 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-6 py-3 text-base',
-  }
 
   return (
     <button
@@ -179,15 +212,23 @@ function Button({ children, variant = 'primary', size = 'md', className = '', ..
   )
 }
 
+interface TrendData {
+  current_month?: string;
+  previous_month?: string;
+  trend_percentage?: number;
+  current_month_total?: number;
+  previous_month_total?: number;
+}
+
 export default function RevenueAnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('6m');
   const [viewType, setViewType] = useState('overview');
   const [sum, setSum] = useState(0);
-  const [error, setError] = useState(null);
-  const [trendData, setTrendData] = useState(0);
-  const [trendError, setTrendError] = useState(null);
-  const [revenueData, setRevenueData] = useState([]);
+  const [error, setError] = useState<string | null>(null);
+  const [trendData, setTrendData] = useState<TrendData>({});
+  const [trendError, setTrendError] = useState<string | null>(null);
+  const [revenueData, setRevenueData] = useState<Array<{ point: number; sum: number; predrev: number }>>([]);
   const [priceData, setPriceData] = useState(priceTrendData);
   const [predrev, setPredictedRevenue] = useState(0);
 
@@ -215,7 +256,7 @@ export default function RevenueAnalyticsDashboard() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://127.0.0.1:5000/analytics', {  // Make sure this URL matches backend route
+      const response = await fetch('http://127.0.0.1:5000/analytics', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -227,10 +268,9 @@ export default function RevenueAnalyticsDashboard() {
       }
 
       const data = await response.json();
-      console.log(data)
       setSum(data);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -253,7 +293,7 @@ export default function RevenueAnalyticsDashboard() {
       console.log('Prediction:', data);
       setPredictedRevenue(data.predicted_revenue);  // assuming it's { "predicted_revenue": number }
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -274,7 +314,7 @@ export default function RevenueAnalyticsDashboard() {
       console.log('Trend data:', data);
       setTrendData(data);
     } catch (err) {
-      setTrendError(err.message);
+      setTrendError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -290,17 +330,15 @@ export default function RevenueAnalyticsDashboard() {
   }, [sum, predrev, trendData]);
 
   // Calculate actual revenue by summing existing actual values + the fetched total sum:
-  const actualRevenue = sum
-   
-    const predictedRevenue = predrev
-    
-    const forecastAccuracy = predictedRevenue !== 0
+  const actualRevenue = Number(sum);
+  const predictedRevenue = Number(predrev);
+  const forecastAccuracy = predictedRevenue !== 0
     ? Number((predictedRevenue / actualRevenue).toPrecision(7))
     : 0;
-    const avgVariance = revenueComparisonData
-      .filter(d => d.variance !== null)
-      .reduce((sum, d) => sum + Math.abs(d.variance), 0) / 
-      revenueComparisonData.filter(d => d.variance !== null).length;
+
+  const avgVariance = revenueComparisonData
+    .map(d => d.variance)
+    .reduce((sum, variance) => sum + Math.abs(variance), 0) / revenueComparisonData.length;
 
   if (loading) {
     return (
@@ -363,10 +401,10 @@ export default function RevenueAnalyticsDashboard() {
           title='Actual Revenue'
           value={`€${actualRevenue.toLocaleString()}`}
           subValue={`${trendData.current_month || 'Current month'}`}
-          change={trendData.trend_percentage ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% vs last month` : 'Calculating...'}
-          trend={trendData.trend_percentage > 0 ? 'up' : 'down'}
+          change={trendData.trend_percentage != null ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% vs last month` : 'Calculating...'}
+          trend={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'up' : 'down'}
           icon={DollarSign}
-          variant={trendData.trend_percentage > 0 ? 'success' : 'danger'}
+          variant={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'success' : 'danger'}
         />
         <StatsCard
           title="Predicted Revenue"
@@ -389,10 +427,10 @@ export default function RevenueAnalyticsDashboard() {
           title="Price Trend"
           value={`€${trendData.current_month_total?.toLocaleString() || '0'}`}
           subValue={`vs €${trendData.previous_month_total?.toLocaleString() || '0'}`}
-          change={trendData.trend_percentage ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% growth` : 'Calculating...'}
-          trend={trendData.trend_percentage > 0 ? 'up' : 'down'}
+          change={trendData.trend_percentage != null ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% growth` : 'Calculating...'}
+          trend={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'up' : 'down'}
           icon={TrendingUp}
-          variant={trendData.trend_percentage > 0 ? 'success' : 'danger'}
+          variant={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'success' : 'danger'}
         />
       </div>
 
@@ -520,8 +558,8 @@ export default function RevenueAnalyticsDashboard() {
               <XAxis dataKey='month' />
               <YAxis domain={[80, 100]} tickFormatter={(value) => `${value}%`} />
               <Tooltip
-                formatter={(value, name) => [
-                  name === 'confidence' ? `${(value * 100).toFixed(1)}%` : `${value}%`,
+                formatter={(value, name: string) => [
+                  typeof value === 'number' ? (name === 'confidence' ? `${(value * 100).toFixed(1)}%` : `${value}%`) : `${value}`,
                   name === 'confidence' ? 'Confidence Level' : 'Accuracy',
                 ]}
               />
@@ -548,7 +586,7 @@ export default function RevenueAnalyticsDashboard() {
 
       {/* Insights and Actions */}
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        <Card title='Key Insights' className='lg:col-span-2'>
+        <Card title='Key Insights' subtitle='' className='lg:col-span-2'>
           <div className='space-y-4'>
             <div className='flex items-start space-x-3 p-4 bg-green-50 rounded-lg border border-green-200'>
               <CheckCircle className='h-5 w-5 text-green-600 mt-0.5 flex-shrink-0' />
@@ -598,7 +636,7 @@ export default function RevenueAnalyticsDashboard() {
           </div>
         </Card>
 
-        <Card title='Quick Actions'>
+        <Card title='Quick Actions' subtitle=''>
           <div className='space-y-3'>
             <Button className='w-full justify-start text-left' variant='secondary'>
               <Target className='h-4 w-4 mr-2 flex-shrink-0' />

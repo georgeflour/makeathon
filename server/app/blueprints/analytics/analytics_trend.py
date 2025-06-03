@@ -3,8 +3,7 @@ import json
 import pandas as pd
 from datetime import datetime
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "excel", "Data.xlsx")
+EXCEL_PATH = "/app/excel/Data.xlsx"
 
 def get_price_trend():
     try:

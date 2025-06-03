@@ -17,175 +17,23 @@ import { useEffect, useState } from 'react'
 
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
+import { Bundle, FlaskBundle, FlaskResponse, InventoryItem, SearchParameters } from '@/types/bundles'
+import { transformFlaskData } from '@/utils/bundleTransforms'
 
-// Updated type to match Flask backend response
-export interface FlaskBundle {
-  bundle_id: string
-  name: string
-  items: {
-    item_name: string
-    qty: number
-  }[]
-  price: number
-  profitMargin: string
-  duration: string
-  season: string
-  rationale: string
+interface BundleCardProps {
+  bundle: Bundle
+  onDelete: (bundleId: string) => Promise<void>
+  onView: (bundle: Bundle) => void
 }
 
-export interface FlaskResponse {
-  bundles: FlaskBundle[]
+interface ViewBundleModalProps {
+  bundle: Bundle
+  onClose: () => void
 }
 
-// Inventory item type
-interface InventoryItem {
-  item_id: string
-  name: string
-  category?: string
-  price?: number
-}
-
-// Transformed bundle type for UI
-export interface Bundle {
-  id: string
-  name: string
-  description: string
-  products: string[]
-  originalPrice: number
-  bundlePrice: number
-  discount: number
-  type: 'all' | 'complementary' | 'thematic' | 'volume' | 'cross-sell' | 'seasonal'
-  status: 'active' | 'inactive' | 'scheduled'
-  startDate: string
-  endDate: string
-  forecastedRevenue: number
-  actualRevenue: number
-  createdAt: string
-  profitMargin: string
-  itemCount: number
-  rationale?: string
-  duration: string
-  season: string
-}
-
-// Search parameters interface
-interface SearchParameters {
-  product_name: string
-  profit_margin: number
-  objective: 'Max Cart' | 'Sell Out'
-  quantity: number
-  timeframe: string
-  bundle_type: 'all' | 'complementary' | 'volume' | 'thematic' | 'seasonal' | 'cross-sell'
-}
-
-// Function to transform Flask data to UI format
-export const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
-  return flaskData.map((bundle) => {
-    // Calculate original price based on profit margin
-    const profitMarginPercentage = parseInt(bundle.profitMargin) / 100
-    const originalPrice = bundle.price / (1 - profitMarginPercentage)
-    const discount = Math.round(((originalPrice - bundle.price) / originalPrice) * 100)
-
-    // Determine status based on season and duration
-    let status: 'active' | 'inactive' | 'scheduled'
-    const currentDate = new Date()
-
-    if (bundle.duration === 'Until stock runs out') {
-      status = 'active'
-    } else if (!bundle.season) {
-      status = 'inactive'
-    } else {
-      const [startMonth, endMonth] = bundle.season.split('–')
-      const months = [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ]
-      const currentMonth = months[currentDate.getMonth()]
-
-      if (startMonth && endMonth) {
-        const startIdx = months.indexOf(startMonth)
-        const endIdx = months.indexOf(endMonth)
-        const currentIdx = months.indexOf(currentMonth)
-
-        if (startIdx <= currentIdx && currentIdx <= endIdx) {
-          status = 'active'
-        } else if (currentIdx < startIdx) {
-          status = 'scheduled'
-        } else {
-          status = 'inactive'
-        }
-      } else {
-        status = bundle.season ? 'active' : 'inactive'
-      }
-    }
-
-    // Generate description based on items
-    const itemDescriptions = bundle.items.map((item) => `${item.qty}x ${item.item_name}`).join(', ')
-    const description = `Bundle containing: ${itemDescriptions}`
-
-    // Determine bundle type based on items and rationale
-    let type: Bundle['type'] = 'all'
-    if (bundle.rationale.toLowerCase().includes('volume')) {
-      type = 'volume'
-    } else if (bundle.rationale.toLowerCase().includes('cross-sell')) {
-      type = 'cross-sell'
-    } else if (bundle.rationale.toLowerCase().includes('seasonal')) {
-      type = 'seasonal'
-    } else if (bundle.rationale.toLowerCase().includes('complementary')) {
-      type = 'complementary'
-    } else if (bundle.rationale.toLowerCase().includes('theme')) {
-      type = 'thematic'
-    }
-
-    // Calculate dates
-    const startDate = new Date()
-    let endDate = new Date()
-    if (bundle.duration !== 'Until stock runs out') {
-      const durationMatch = bundle.duration.match(/(\d+)\s+(week|month)s?/)
-      if (durationMatch) {
-        const [, amount, unit] = durationMatch
-        if (unit === 'week') {
-          endDate.setDate(endDate.getDate() + parseInt(amount) * 7)
-        } else if (unit === 'month') {
-          endDate.setMonth(endDate.getMonth() + parseInt(amount))
-        }
-      }
-    } else {
-      endDate.setMonth(endDate.getMonth() + 6) // Default 6 months for "Until stock runs out"
-    }
-
-    return {
-      id: bundle.bundle_id,
-      name: bundle.name,
-      description,
-      products: bundle.items.map((item) => item.item_name),
-      originalPrice: Math.round(originalPrice * 100) / 100,
-      bundlePrice: bundle.price,
-      discount,
-      type,
-      status,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      forecastedRevenue: bundle.price * 100, // Example forecast
-      actualRevenue: status === 'active' ? bundle.price * 75 : 0, // Example actual revenue
-      createdAt: startDate.toISOString(),
-      profitMargin: bundle.profitMargin,
-      itemCount: bundle.items.reduce((acc, item) => acc + item.qty, 0),
-      rationale: bundle.rationale,
-      duration: bundle.duration,
-      season: bundle.season,
-    }
-  })
+interface CreateBundleModalProps {
+  onClose: () => void
+  onSubmit: () => void
 }
 
 export default function BundlesPage() {
@@ -229,7 +77,7 @@ export default function BundlesPage() {
         try {
           data = JSON.parse(data)
         } catch (e) {
-          console.error('Σφάλμα στο JSON.parse:', e)
+          console.error('Error parsing JSON:', e)
           data = []
         }
       }
@@ -248,9 +96,9 @@ export default function BundlesPage() {
       }
 
       setInventoryItems(items)
-    } catch (err) {
-      console.error('Error fetching inventory:', err)
-      setInventoryError(err instanceof Error ? err.message : 'Failed to fetch inventory')
+    } catch (error) {
+      console.error('Error fetching inventory:', error)
+      setInventoryError('Failed to fetch inventory items')
     } finally {
       setInventoryLoading(false)
     }
@@ -760,17 +608,6 @@ export default function BundlesPage() {
   )
 }
 
-interface BundleCardProps {
-  bundle: Bundle
-  onDelete: (bundleId: string) => Promise<void>
-  onView: (bundle: Bundle) => void
-}
-
-interface ViewBundleModalProps {
-  bundle: Bundle
-  onClose: () => void
-}
-
 function ViewBundleModal({ bundle, onClose }: ViewBundleModalProps) {
   const getTypeLabel = (type: string) => {
     switch (type) {
@@ -1075,11 +912,6 @@ function BundleCard({ bundle, onDelete, onView }: BundleCardProps) {
       </div>
     </div>
   )
-}
-
-interface CreateBundleModalProps {
-  onClose: () => void
-  onSubmit: () => void
 }
 
 function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
