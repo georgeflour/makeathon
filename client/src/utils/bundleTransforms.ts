@@ -6,91 +6,96 @@ export const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
     return []
   }
 
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
   return flaskData.map((bundle) => {
     try {
-      // Ensure required fields exist
       if (!bundle || !bundle.items || !Array.isArray(bundle.items)) {
         console.error('Invalid bundle data:', bundle)
         return null
       }
 
-      // Calculate original price based on profit margin
-      const profitMarginPercentage = parseInt(bundle.profitMargin || '35') / 100
-      const originalPrice = bundle.price / (1 - profitMarginPercentage) || 0
-      const discount = Math.round(((originalPrice - (bundle.price || 0)) / originalPrice) * 100) || 0
+      // Calculate original price based on profit margin if available
+      const marginString = (typeof bundle.profitMargin === 'string')
+        ? bundle.profitMargin.replace('%', '') : '35'
+      const profitMarginPercentage = parseFloat(marginString) / 100
+      const bundlePrice = bundle.price || 0
+      const originalPrice =
+        profitMarginPercentage && profitMarginPercentage < 1
+          ? bundlePrice / (1 - profitMarginPercentage)
+          : bundlePrice
+      const discount =
+        originalPrice > 0
+          ? Math.round(((originalPrice - bundlePrice) / originalPrice) * 100)
+          : 0
 
-      // Determine status based on season and duration
+      // Status logic
       let status: 'active' | 'inactive' | 'scheduled' = 'inactive'
-
       if (!bundle.duration || !bundle.season) {
         status = 'inactive'
-      } else if (bundle.duration.toLowerCase() === 'until stock runs out') {
+      } else if (
+        bundle.duration.toLowerCase().includes('until stock runs out')
+      ) {
         status = 'active'
-      } else {
-        const currentDate = new Date()
-        const [startMonth, endMonth] = (bundle.season || '').split('–')
-        const months = [
-          'January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'
-        ]
-        const currentMonth = months[currentDate.getMonth()]
+      } else if (bundle.season) {
+        // Season logic, works for "September–November" or similar
+        const now = new Date()
+        const currentMonth = months[now.getMonth()]
+        const dash = bundle.season.includes('–') ? '–' : '-'
+        const [startMonth, endMonth] = bundle.season.split(dash).map((s) => s.trim())
+        const startIdx = months.indexOf(startMonth)
+        const endIdx = months.indexOf(endMonth)
+        const currentIdx = months.indexOf(currentMonth)
 
-        if (startMonth && endMonth) {
-          const startIdx = months.indexOf(startMonth.trim())
-          const endIdx = months.indexOf(endMonth.trim())
-          const currentIdx = months.indexOf(currentMonth)
-
-          if (startIdx !== -1 && endIdx !== -1) {
-            if (startIdx <= currentIdx && currentIdx <= endIdx) {
-              status = 'active'
-            } else if (currentIdx < startIdx) {
-              status = 'scheduled'
-            }
+        if (startIdx !== -1 && endIdx !== -1) {
+          if (startIdx <= currentIdx && currentIdx <= endIdx) {
+            status = 'active'
+          } else if (currentIdx < startIdx) {
+            status = 'scheduled'
           }
         } else if (bundle.season) {
           status = 'active'
         }
       }
 
-      // Generate description based on items
+      // Compose description
       const itemDescriptions = bundle.items
-        .filter(item => item && item.item_name)
+        .filter((item) => item && item.item_name)
         .map((item) => `${item.qty || 1}x ${item.item_name}`)
         .join(', ')
       const description = `Bundle containing: ${itemDescriptions}`
 
-      // Determine bundle type based on items and rationale
+      // Determine bundle type
       let type: Bundle['type'] = 'all'
       const rationale = (bundle.rationale || '').toLowerCase()
-      if (rationale.includes('volume')) {
-        type = 'volume'
-      } else if (rationale.includes('cross-sell')) {
-        type = 'cross-sell'
-      } else if (rationale.includes('seasonal')) {
-        type = 'seasonal'
-      } else if (rationale.includes('complementary')) {
-        type = 'complementary'
-      } else if (rationale.includes('theme')) {
-        type = 'thematic'
-      }
+      if (rationale.includes('volume')) type = 'volume'
+      else if (rationale.includes('cross-sell')) type = 'cross-sell'
+      else if (rationale.includes('seasonal')) type = 'seasonal'
+      else if (rationale.includes('complementary')) type = 'complementary'
+      else if (rationale.includes('theme')) type = 'thematic'
 
-      // Calculate dates
+      // Dates logic (fallback: 6 months ahead)
       const startDate = new Date()
-      let endDate = new Date()
-      
-      if (bundle.duration && bundle.duration !== 'Until stock runs out') {
-        const durationMatch = bundle.duration.match(/(\d+)\s+(week|month)s?/)
+      let endDate = new Date(startDate)
+      if (bundle.duration && !bundle.duration.toLowerCase().includes('until stock runs out')) {
+        const durationMatch = bundle.duration.match(/(\d+)\s*(week|month)/i)
         if (durationMatch) {
-          const [, amount, unit] = durationMatch
-          if (unit === 'week') {
-            endDate.setDate(endDate.getDate() + parseInt(amount) * 7)
-          } else if (unit === 'month') {
-            endDate.setMonth(endDate.getMonth() + parseInt(amount))
-          }
+          const [, amountStr, unit] = durationMatch
+          const amount = parseInt(amountStr)
+          if (unit.startsWith('week')) endDate.setDate(endDate.getDate() + amount * 7)
+          else if (unit.startsWith('month')) endDate.setMonth(endDate.getMonth() + amount)
         }
       } else {
-        endDate.setMonth(endDate.getMonth() + 6) // Default 6 months for "Until stock runs out"
+        endDate.setMonth(endDate.getMonth() + 6)
       }
+
+      // Handle customer_segments (empty array if missing)
+      const customerSegments = Array.isArray(bundle.customer_segments)
+        ? bundle.customer_segments
+        : []
 
       return {
         id: bundle.bundle_id || `bundle_${Math.random().toString(36).substr(2, 9)}`,
@@ -98,24 +103,25 @@ export const transformFlaskData = (flaskData: FlaskBundle[]): Bundle[] => {
         description,
         products: bundle.items.map((item) => item.item_name || '').filter(Boolean),
         originalPrice: Math.round(originalPrice * 100) / 100,
-        bundlePrice: bundle.price || 0,
+        bundlePrice,
         discount,
         type,
         status,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
-        forecastedRevenue: (bundle.price || 0) * 100, // Example forecast
-        actualRevenue: status === 'active' ? (bundle.price || 0) * 75 : 0, // Example actual revenue
+        forecastedRevenue: bundlePrice * 100, // Adjust as needed
+        actualRevenue: status === 'active' ? bundlePrice * 75 : 0, // Adjust as needed
         createdAt: startDate.toISOString(),
         profitMargin: bundle.profitMargin || '35%',
         itemCount: bundle.items.reduce((acc, item) => acc + (item.qty || 1), 0),
         rationale: bundle.rationale || '',
         duration: bundle.duration || '',
         season: bundle.season || '',
+        customer_segments: customerSegments, // ADDED FIELD
       }
     } catch (error) {
       console.error('Error transforming bundle:', error, bundle)
       return null
     }
-  }).filter(Boolean) as Bundle[] // Remove any null entries from failed transformations
-} 
+  }).filter(Boolean) as Bundle[]
+}

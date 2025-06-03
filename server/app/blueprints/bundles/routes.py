@@ -83,6 +83,7 @@ def generate_bundles():
         # Strip '%' symbol if present and convert to string
         target_profit_margin_input = str(request_data.get("target_profit_margin_input", "35"))
         bundle_size = request_data.get("bundle_size", 10)
+        bundle_cust_segment_input = request_data.get("bundle_cust_segment_input","None")
 
         logger.info(f"Parameters: product_to_clear={product_to_clear}, margin={target_profit_margin_input}, size={bundle_size}")
 
@@ -91,7 +92,8 @@ def generate_bundles():
         result = get_results_from_ai(
             product_to_clear=product_to_clear,
             target_profit_margin_input=target_profit_margin_input,
-            top_n=bundle_size
+            top_n=bundle_size,
+            bundle_cust_segment_input=bundle_cust_segment_input,
         )
         logger.info("Successfully got results from AI")
 
@@ -163,12 +165,14 @@ def get_data_user():
     product_name = request_data.get("product_name")
     profit_margin = request_data.get("profit_margin", 35)
     quantity = request_data.get("quantity", 2)
+    bundle_cust_segment_input = request_data.get("bundle_cust_segment_input","None")
 
     # Call get_results_from_ai with the correct parameters
     result = get_results_from_ai(
         product_to_clear=product_name,
         target_profit_margin_input=str(profit_margin),
-        top_n=quantity
+        top_n=quantity,
+        bundle_cust_segment_input=bundle_cust_segment_input, 
     )
 
     if result:

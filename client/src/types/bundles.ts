@@ -11,6 +11,7 @@ export interface FlaskBundle {
   duration: string
   season: string
   rationale: string
+  customer_segments?: string[] 
 }
 
 export interface FlaskResponse {
@@ -38,6 +39,7 @@ export interface Bundle {
   rationale?: string
   duration: string
   season: string
+  customer_segments?: string[] 
 }
 
 // Search parameters interface
@@ -48,6 +50,7 @@ export interface SearchParameters {
   quantity: number
   timeframe: string
   bundle_type: 'all' | 'complementary' | 'volume' | 'thematic' | 'seasonal' | 'cross-sell'
+  customer_segments: string[]
 }
 
 // Inventory item type

@@ -22,6 +22,7 @@ def ai_call(
     bundle_type_input: str = "All",
     bundle_size_input: str = "Default (2-5 products)",
     top_n: int = 10,
+    bundle_cust_segment_input = None,
     related_skus: list = None,
     excel_path: str = "product_bundle_suggestions.xlsx"
 ):
@@ -83,12 +84,14 @@ def ai_call(
         - **Bundle Size**: {bundle_size_input}
         - **Target Profit Margin**: {target_profit_margin_input}
         - **Duration (if given)**: {duration_input}
+        - **Customer segmentation (if given)**: {bundle_cust_segment_input}
 
         ---
 
         ### PRICING & MARGIN CORRELATION (Very Important!)
 
         > - **The only variable that changes to achieve a lower profit margin is the price—unit costs remain fixed.**
+        > - **If the objective is "Max Cart" and the user has not explicitly set a margin, recommend a margin in the range 30–34% for optimal results, but always prioritize the user's explicit request if given.**
         > - **Profit margin and price are 100% correlated:**
         >   - Example: If an item's original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
         >   - If a bundle requires a lower margin (e.g., 25%), the new price is calculated by keeping the unit cost fixed and reducing only the margin:  
@@ -145,7 +148,17 @@ def ai_call(
         - Make sure **Duration** and **Season** are not always the same and do not contradict each other. Not every bundle needs both a specific season and a set duration.
 
         ---
+        ### CUSTOMER SEGMENTATION RULESAdd commentMore actions
 
+        > - If a **customer segment** is provided, all bundle recommendations **must be tailored specifically to that segment**.
+        > - **Bundle products, names, pricing, and timing must reflect the behavior, preferences, and spending habits of the segment.** For example:
+        >   - Young adults (18–25): trend-driven items, bold styles, affordable pricing.
+        >   - Parents/families: practical combinations, multi-use items, strong value.
+        >   - Premium shoppers: luxury brands, curated aesthetics, higher price points.
+        > - **Never ignore segmentation**—even if it narrows product choices, bundles must make strategic sense for the defined audience.
+        > - If **no segment is specified**, assume a general consumer profile and design bundles for broad appeal.
+
+---
         **Here are the already-optimised bundles:**
         {bundles_md}
         ---
@@ -218,6 +231,49 @@ def ai_call(
 
 
 
+def extract_products(section):
+    # Find the line with "**Products**:"
+    products_lines = []
+    in_products = False
+    for line in section.splitlines():
+        if "**Products**:" in line:
+            in_products = True
+            # Check for inline products (all on same line)
+            parts = line.split("**Products**:")
+            if len(parts) > 1 and parts[1].strip():
+                # Inline, comma-separated or dash-separated
+                inline = parts[1].strip()
+                if inline.startswith("- "):  # Standard markdown
+                    products_lines.append(inline)
+                elif inline:
+                    # Split by ',' for comma-separated or just treat as one product
+                    if "," in inline:
+                        for product in inline.split(","):
+                            if product.strip():
+                                products_lines.append("- " + product.strip())
+                    else:
+                        products_lines.append("- " + inline)
+        elif in_products:
+            # Keep reading until next field or empty line
+            if line.strip().startswith("**") or line.strip() == "":
+                break
+            if line.strip().startswith("- "):
+                products_lines.append(line.strip())
+    # Now parse lines
+    products = []
+    for line in products_lines:
+        if line.startswith("- "):
+            name = line[2:].strip()
+            qty = 1
+            # Optionally, try to extract a quantity if present at the end (e.g. "x2")
+            match = re.search(r"x(\d+)$", name)
+            if match:
+                qty = int(match.group(1))
+                name = name[:match.start()].strip()
+            products.append({"item_name": name, "qty": qty})
+    return products
+
+
 def ai_bundles_to_json(ai_output):
     logger.info(f"Converting AI output to JSON. AI output:\n{ai_output}")
     
@@ -238,17 +294,11 @@ def ai_bundles_to_json(ai_output):
             duration_match = re.search(r"\*\*Duration\*\*:\s*([^\n]+)", section)
             season_match = re.search(r"\*\*Season\*\*:\s*([^\n]+)", section)
             rationale_match = re.search(r"\*\*Rationale\*\*:\s*([^*]+?)(?=\n\s*(?:\*\*|$))", section, re.DOTALL)
+            segment_match = re.search(r"\*\*Customer Segment\*\*:\s*(.+?)(?:\n|$)", section)
+
             
-            # Extract products without validation
-            products = []
-            if products_section:
-                product_lines = products_section.group(1).strip().split("\n")
-                for line in product_lines:
-                    if line.strip().startswith("- "):
-                        products.append({
-                            "item_name": line[2:].strip(),
-                            "qty": 1
-                        })
+            products = extract_products(section)
+
             
             bundle_json = {
                 "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
@@ -258,7 +308,8 @@ def ai_bundles_to_json(ai_output):
                 "profitMargin": f"{margin_match.group(1)}%" if margin_match else None,
                 "duration": duration_match.group(1).strip() if duration_match else None,
                 "season": season_match.group(1).strip() if season_match and season_match.group(1).strip() else None,
-                "rationale": rationale_match.group(1).strip() if rationale_match else None
+                "rationale": rationale_match.group(1).strip() if rationale_match else None,
+                "customer_segment": segment_match.group(1).strip() if segment_match else None
             }
             
             bundles.append(bundle_json)
@@ -274,6 +325,7 @@ def get_results_from_ai(
     product_to_clear: str = None,
     target_profit_margin_input: str = "30",
     top_n: int = 20,
+    bundle_cust_segment_input: str = None,
     related_skus: list = None,
     excel_path: str = "/app/excel/product_bundle_suggestions.xlsx"
 ) -> dict:
@@ -290,6 +342,7 @@ def get_results_from_ai(
         bundle_type_input="All",
         bundle_size_input=f"Default ({top_n} products)",
         top_n=top_n,
+        bundle_cust_segment_input=bundle_cust_segment_input,
         related_skus=related_skus,
         excel_path=excel_path
     )
