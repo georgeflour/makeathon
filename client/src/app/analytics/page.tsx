@@ -212,37 +212,57 @@ function Button({ children, variant = 'primary', size = 'md', className = '', ..
   )
 }
 
-interface TrendData {
-  current_month?: string;
-  previous_month?: string;
-  trend_percentage?: number;
-  current_month_total?: number;
-  previous_month_total?: number;
+interface AnalyticsData {
+  total_sales: number;
+  prediction: {
+    predicted_revenue: number;
+  };
+  trend: {
+    current_month?: string;
+    previous_month?: string;
+    trend_percentage?: number;
+    current_month_total?: number;
+    previous_month_total?: number;
+  };
 }
 
 export default function RevenueAnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('6m');
   const [viewType, setViewType] = useState('overview');
-  const [sum, setSum] = useState(0);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [trendData, setTrendData] = useState<TrendData>({});
-  const [trendError, setTrendError] = useState<string | null>(null);
   const [revenueData, setRevenueData] = useState<Array<{ point: number; sum: number; predrev: number }>>([]);
   const [priceData, setPriceData] = useState(priceTrendData);
-  const [predrev, setPredictedRevenue] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchSum(),
-          fetchPrediction(),
-          fetchTrend()
-        ]);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics/data`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setAnalyticsData(data);
+        
+        // Create revenue data for chart
+        if (data.total_sales && data.prediction?.predicted_revenue) {
+          const newRevenueData = [
+            { point: 1, sum: data.total_sales, predrev: data.prediction.predicted_revenue * 0.9 },
+            { point: 2, sum: data.total_sales * 1.1, predrev: data.prediction.predicted_revenue }
+          ];
+          setRevenueData(newRevenueData);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setLoading(false);
       }
@@ -251,87 +271,9 @@ export default function RevenueAnalyticsDashboard() {
     fetchData();
   }, []); // Empty dependency array means this only runs once on mount
 
-  const fetchSum = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setSum(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPrediction = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics-prediction`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Prediction:', data);
-      setPredictedRevenue(data.predicted_revenue);  // assuming it's { "predicted_revenue": number }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
-  const fetchTrend = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics-trend`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Trend data:', data);
-      setTrendData(data);
-    } catch (err) {
-      setTrendError(err instanceof Error ? err.message : 'An error occurred');
-    }
-  };
-
-  useEffect(() => {
-    // Create simple trend data based on actual and predicted values
-    if (sum && predrev) {
-      const newRevenueData = [
-        { point: 1, sum: sum, predrev: predrev * 0.9 },
-        { point: 2, sum: sum * 1.1, predrev: predrev }
-      ];
-      setRevenueData(newRevenueData);
-    }
-  }, [sum, predrev, trendData]);
-
-  // Calculate actual revenue by summing existing actual values + the fetched total sum:
-  const actualRevenue = Number(sum);
-  const predictedRevenue = Number(predrev);
+  // Calculate values from analytics data
+  const actualRevenue = analyticsData?.total_sales ?? 0;
+  const predictedRevenue = analyticsData?.prediction?.predicted_revenue ?? 0;
   const forecastAccuracy = predictedRevenue !== 0
     ? Number((predictedRevenue / actualRevenue).toPrecision(7))
     : 0;
@@ -396,15 +338,15 @@ export default function RevenueAnalyticsDashboard() {
       </div>
 
       {/* Key Metrics */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6'>
         <StatsCard
           title='Actual Revenue'
           value={`€${actualRevenue.toLocaleString()}`}
-          subValue={`${trendData.current_month || 'Current month'}`}
-          change={trendData.trend_percentage != null ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% vs last month` : 'Calculating...'}
-          trend={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'up' : 'down'}
+          subValue={analyticsData?.trend?.current_month || 'Current month'}
+          change={analyticsData?.trend?.trend_percentage != null ? `${analyticsData.trend.trend_percentage > 0 ? '+' : ''}${analyticsData.trend.trend_percentage.toFixed(1)}% vs last month` : 'Calculating...'}
+          trend={analyticsData?.trend?.trend_percentage != null && analyticsData.trend.trend_percentage > 0 ? 'up' : 'down'}
           icon={DollarSign}
-          variant={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'success' : 'danger'}
+          variant={analyticsData?.trend?.trend_percentage != null && analyticsData.trend.trend_percentage > 0 ? 'success' : 'danger'}
         />
         <StatsCard
           title="Predicted Revenue"
@@ -416,21 +358,21 @@ export default function RevenueAnalyticsDashboard() {
         />
         <StatsCard
           title='Forecast Accuracy'
-          value={`${forecastAccuracy}%`}
+          value={`${(forecastAccuracy * 100).toFixed(1)}%`}
           subValue="Current month"
-          change={`vs ${trendData.previous_month || 'last month'}`}
-          trend={forecastAccuracy >= 90 ? 'up' : 'down'}
+          change={`vs ${analyticsData?.trend?.previous_month || 'last month'}`}
+          trend={forecastAccuracy >= 0.9 ? 'up' : 'down'}
           icon={CheckCircle}
-          variant={forecastAccuracy >= 90 ? 'success' : 'warning'}
+          variant={forecastAccuracy >= 0.9 ? 'success' : 'warning'}
         />
         <StatsCard
           title="Price Trend"
-          value={`€${trendData.current_month_total?.toLocaleString() || '0'}`}
-          subValue={`vs €${trendData.previous_month_total?.toLocaleString() || '0'}`}
-          change={trendData.trend_percentage != null ? `${trendData.trend_percentage > 0 ? '+' : ''}${trendData.trend_percentage.toFixed(1)}% growth` : 'Calculating...'}
-          trend={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'up' : 'down'}
+          value={`€${analyticsData?.trend?.current_month_total?.toLocaleString() || '0'}`}
+          subValue={`vs €${analyticsData?.trend?.previous_month_total?.toLocaleString() || '0'}`}
+          change={analyticsData?.trend?.trend_percentage != null ? `${analyticsData.trend.trend_percentage > 0 ? '+' : ''}${analyticsData.trend.trend_percentage.toFixed(1)}% growth` : 'Calculating...'}
+          trend={analyticsData?.trend?.trend_percentage != null && analyticsData.trend.trend_percentage > 0 ? 'up' : 'down'}
           icon={TrendingUp}
-          variant={trendData.trend_percentage != null && trendData.trend_percentage > 0 ? 'success' : 'danger'}
+          variant={analyticsData?.trend?.trend_percentage != null && analyticsData.trend.trend_percentage > 0 ? 'success' : 'danger'}
         />
       </div>
 
