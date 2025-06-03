@@ -161,6 +161,15 @@ def ai_call(
 
         **Do not generate new bundles from scratch. Only use and improve the bundles above, making small changes if necessary.**
         **Never output extra commentary or missing fields.**
+
+
+        ### IMPORTANT RULE FOR PRODUCT SWAPS
+
+        If you propose swapping any product:
+        - You may ONLY use products that ALREADY EXIST in the provided bundle dataset.
+        - You MUST use the existing price and cost values from the dataset for those products.
+        - You are NOT allowed to invent new products, prices, or costs.
+        If no appropriate replacement exists in the dataset, DO NOT make a change.
         """
 
 # [Azure OpenAI API call as before]
@@ -195,7 +204,7 @@ def ai_call(
                     }
                 ]
             },
-            temperature=0.7,
+            temperature=0.0,
             max_tokens=3000,
         )
         response_content = completion.choices[0].message.content
