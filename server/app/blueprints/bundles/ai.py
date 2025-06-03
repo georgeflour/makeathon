@@ -5,8 +5,9 @@ import json
 import re
 import uuid
 
-from server.app.blueprints.bundles import optimise_bundles
+from .optimise_bundles import optimize_bundles
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def ai_call(
     product_to_clear: str = None,
@@ -26,7 +27,7 @@ def ai_call(
     """
     load_dotenv()
     # STEP 1: Run Python-side optimiser
-    bundles_result = optimise_bundles(
+    bundles_result = optimize_bundles(
         product_to_clear=product_to_clear,
         target_profit_margin_input=target_profit_margin_input,
         top_n=top_n,
@@ -81,14 +82,14 @@ def ai_call(
 
         > - **The only variable that changes to achieve a lower profit margin is the price—unit costs remain fixed.**
         > - **Profit margin and price are 100% correlated:**
-        >   - Example: If an item’s original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
+        >   - Example: If an item's original price is €100 and the original profit margin is 35%, the unit cost is €65 (since €100 - €65 = €35, which is 35% margin).
         >   - If a bundle requires a lower margin (e.g., 25%), the new price is calculated by keeping the unit cost fixed and reducing only the margin:  
         >      - New Price = Unit Cost / (1 - Desired Margin Percentage)  
         >      - For 25% margin: New Price = €65 / (1 - 0.25) = €86.67 (rounded as needed)
         >   - **The margin profit reduction comes ONLY from price reduction. Never change costs.**
         > - **For bundles with multiple items:**  
         >   - Apply the same margin logic to each item in the bundle (cost stays fixed, margin/price change is proportional).
-        >   - **The bundle’s final profit margin is the average of all included items’ margins** (unless you have a specific per-bundle margin, then use that average).
+        >   - **The bundle's final profit margin is the average of all included items' margins** (unless you have a specific per-bundle margin, then use that average).
         >   - Always show both the bundle price and the computed average profit margin.
 
         ---
@@ -249,19 +250,17 @@ def ai_bundles_to_json(ai_output):
 
 def get_results_from_ai(
     product_to_clear: str = None,
-    target_profit_margin_input: str = "Default (35%)",
-    duration_input: str = "Estimate based on seasonality and stock",
-    objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
-    bundle_type_input: str = "All",
-    bundle_size_input: str = "Default (2–5 products)",
-):
+    target_profit_margin_input: str = "34",
+    top_n: int = 20,
+    related_skus: list = None,
+    excel_path: str = "/app/excel/product_bundle_suggestions.xlsx"
+) -> dict:
     output = ai_call(
         product_to_clear=product_to_clear,
         target_profit_margin_input=target_profit_margin_input,
-        duration_input=duration_input,
-        objective_input=objective_input,
-        bundle_type_input=bundle_type_input,
-        bundle_size_input=bundle_size_input,
+        top_n=top_n,
+        related_skus=related_skus,
+        excel_path=excel_path
     )
     bundle_json = ai_bundles_to_json(output)
     return bundle_json

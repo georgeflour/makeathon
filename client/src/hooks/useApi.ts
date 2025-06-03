@@ -5,10 +5,23 @@ export function useApi<T>(apiCall: () => Promise<T>, deps: any[] = []) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await apiCall()
+      setData(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
 
-    const fetchData = async () => {
+    const fetchDataWithMountCheck = async () => {
       try {
         setLoading(true)
         setError(null)
@@ -27,12 +40,12 @@ export function useApi<T>(apiCall: () => Promise<T>, deps: any[] = []) {
       }
     }
 
-    fetchData()
+    fetchDataWithMountCheck()
 
     return () => {
       isMounted = false
     }
   }, deps)
 
-  return { data, loading, error, refetch: () => fetchData() }
+  return { data, loading, error, refetch: fetchData }
 }

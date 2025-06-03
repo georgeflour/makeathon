@@ -1,12 +1,9 @@
-data.json
-*.json
 
 *.log
 logs/
 db_operations.log
 
-/*.xlsx
-Orders.xlsx
+
 __pycache__/
 *.pyc
 *.pyo

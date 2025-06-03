@@ -15,7 +15,8 @@ import { useEffect, useState } from 'react'
 
 import Link from 'next/link'
 
-import { Bundle, FlaskBundle, transformFlaskData } from '../bundles/page'
+import { Bundle } from '@/types/bundles'
+import { transformFlaskData } from '@/utils/bundleTransforms'
 
 interface ViewBundleModalProps {
   bundle: Bundle

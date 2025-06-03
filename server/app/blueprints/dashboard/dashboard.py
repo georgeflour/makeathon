@@ -3,10 +3,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ORDERS_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "excel", "Data.xlsx")
-INVENTORY_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "excel", "inventory_enriched.xlsx")
-BUNDLES_PATH = os.path.join(BASE_DIR, "..", "..", "..", "..", "bundles.json")
+ORDERS_PATH = "/app/excel/Data.xlsx"
+INVENTORY_PATH = "/app/excel/inventory_enriched.xlsx"
+BUNDLES_PATH = "/app/bundles.json"
 
 # Read the Excel files once when the module loads
 try:

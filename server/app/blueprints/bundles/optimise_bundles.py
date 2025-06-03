@@ -1,11 +1,14 @@
 import pandas as pd
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def optimize_bundles(
     product_to_clear=None,
     target_profit_margin_input="34",
     top_n=20,
     related_skus=None,
-    excel_path="product_bundle_suggestions.xlsx",
+    excel_path="/app/excel/product_bundle_suggestions.xlsx",
     alpha=0.3  # <-- weighting for frequency in score, adjust as needed
 ):
     """
@@ -173,7 +176,7 @@ def save_only_optimized_bundles(
     target_profit_margin_input="34", 
     top_n=20, 
     related_skus=None, 
-    outfile="excel/product_bundle_suggestions.xlsx"
+    outfile="/app/excel/product_bundle_suggestions.xlsx"
     ):
     bundles_dict = optimize_bundles(product_to_clear, target_profit_margin_input, top_n, related_skus)
     for key, sheet_dict in bundles_dict['optimized_bundles'].items():
@@ -182,10 +185,11 @@ def save_only_optimized_bundles(
             df.to_excel(writer, sheet_name=key, index=False)
 
 # Example usage
-save_only_optimized_bundles(
-    product_to_clear=None,
-    target_profit_margin_input="34",
-    top_n=20,
-    related_skus=None,
-    outfile="excel/product_bundle_suggestions.xlsx"
-)
+if __name__ == "__main__":
+    save_only_optimized_bundles(
+        product_to_clear=None,
+        target_profit_margin_input="34",
+        top_n=20,
+        related_skus=None,
+        outfile="/app/excel/product_bundle_suggestions.xlsx"
+    )
