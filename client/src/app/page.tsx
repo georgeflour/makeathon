@@ -40,33 +40,38 @@ interface RevenueTrendData {
   items: number
 }
 
+interface DashboardData {
+  stats: DashboardStats
+  revenueTrend: RevenueTrendData[]
+}
+
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchDashboardStats = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/data`)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
       const data = await response.json()
-      setStats(data)
+      setDashboardData(data)
     } catch (err) {
-      console.error('Error fetching dashboard stats:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard stats')
+      console.error('Error fetching dashboard data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchDashboardStats()
+    fetchDashboardData()
   }, [])
 
   if (error) {
@@ -77,7 +82,7 @@ export default function Dashboard() {
             <p className='text-red-600 mb-2'>Error loading dashboard:</p>
             <p className='text-sm text-gray-600 mb-4'>{error}</p>
             <button
-              onClick={fetchDashboardStats}
+              onClick={fetchDashboardData}
               className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
             >
               Retry
@@ -100,27 +105,27 @@ export default function Dashboard() {
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         <StatCard
           title='Average Order Value'
-          value={stats ? `€${stats.avgOrderValue.toFixed(2)}` : '-'}
-          change={stats?.aovChange}
+          value={dashboardData ? `€${dashboardData.stats.avgOrderValue.toFixed(2)}` : '-'}
+          change={dashboardData?.stats.aovChange}
           icon={<DollarSign className='h-6 w-6' />}
           loading={loading}
         />
         <StatCard
           title='Total Revenue'
-          value={stats ? `€${stats.totalRevenue.toLocaleString()}` : '-'}
-          change={stats?.revenueChange}
+          value={dashboardData ? `€${dashboardData.stats.totalRevenue.toLocaleString()}` : '-'}
+          change={dashboardData?.stats.revenueChange}
           icon={<TrendingUp className='h-6 w-6' />}
           loading={loading}
         />
         <StatCard
           title='Active Bundles'
-          value={stats ? stats.activeBundles.toString() : '-'}
+          value={dashboardData ? dashboardData.stats.activeBundles.toString() : '-'}
           icon={<Package className='h-6 w-6' />}
           loading={loading}
         />
         <StatCard
           title='Stock Alerts'
-          value={stats ? stats.stockAlerts.toString() : '-'}
+          value={dashboardData ? dashboardData.stats.stockAlerts.toString() : '-'}
           icon={<AlertTriangle className='h-6 w-6' />}
           variant='warning'
           loading={loading}
@@ -129,7 +134,7 @@ export default function Dashboard() {
 
       {/* Charts and Recent Activity */}
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        <RevenueChart />
+        <RevenueChart data={dashboardData?.revenueTrend} loading={loading} error={error} />
         <RecentActivity />
       </div>
     </div>
@@ -193,40 +198,13 @@ function StatCard({ title, value, change, icon, variant = 'default', loading }: 
   )
 }
 
-function RevenueChart() {
-  const [trendData, setTrendData] = useState<RevenueTrendData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface RevenueChartProps {
+  data?: RevenueTrendData[]
+  loading: boolean
+  error: string | null
+}
 
-  useEffect(() => {
-    const fetchTrendData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch('http://127.0.0.1:5000/dashboard/revenue-trend')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-        // Format the data for the chart
-        const formattedData = data.map((item: RevenueTrendData) => ({
-          ...item,
-          date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        }))
-        setTrendData(formattedData)
-      } catch (err) {
-        console.error('Error fetching revenue trend:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch revenue trend')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchTrendData()
-  }, [])
-
+function RevenueChart({ data, loading, error }: RevenueChartProps) {
   if (loading) {
     return (
       <Card title='Revenue Trend' subtitle='Last 7 days'>
@@ -250,6 +228,11 @@ function RevenueChart() {
     )
   }
 
+  const formattedData = data?.map(item => ({
+    ...item,
+    date: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+  })) || []
+
   const formatEuro = (value: number) => `€${value.toLocaleString()}`
 
   return (
@@ -257,7 +240,7 @@ function RevenueChart() {
       <div className='h-[400px] w-full'>
         <ResponsiveContainer width='100%' height='100%'>
           <LineChart
-            data={trendData}
+            data={formattedData}
             margin={{
               top: 20,
               right: 30,
@@ -290,19 +273,19 @@ function RevenueChart() {
         <div className='text-center'>
           <p className='text-sm text-gray-500'>Total Revenue</p>
           <p className='text-lg font-semibold'>
-            €{trendData.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
+            €{formattedData.reduce((sum, day) => sum + day.revenue, 0).toLocaleString()}
           </p>
         </div>
         <div className='text-center'>
           <p className='text-sm text-gray-500'>Total Orders</p>
           <p className='text-lg font-semibold'>
-            {trendData.reduce((sum, day) => sum + day.orders, 0)}
+            {formattedData.reduce((sum, day) => sum + day.orders, 0)}
           </p>
         </div>
         <div className='text-center'>
           <p className='text-sm text-gray-500'>Total Items</p>
           <p className='text-lg font-semibold'>
-            {trendData.reduce((sum, day) => sum + day.items, 0)}
+            {formattedData.reduce((sum, day) => sum + day.items, 0)}
           </p>
         </div>
       </div>

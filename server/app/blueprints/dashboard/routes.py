@@ -4,10 +4,15 @@ from .dashboard import (
     get_total_revenue, 
     get_active_bundles_count, 
     get_stock_alerts_count,
-    get_revenue_trend
+    get_revenue_trend,
+    get_dashboard_data
 )
 
 dashboard_bp = Blueprint("Dashboard", __name__)
+
+@dashboard_bp.route("/dashboard/data", methods=["GET"])
+def get_all_dashboard_data():
+    return get_dashboard_data()
 
 @dashboard_bp.route("/dashboard/stats", methods=["GET"])
 def get_dashboard_stats():
@@ -32,7 +37,7 @@ def get_dashboard_stats():
             "activeBundles": active_bundles,
             "stockAlerts": stock_alerts
         }
-        
+        print(stats)
         return jsonify(stats), 200
     except Exception as e:
         print(f"Error getting dashboard stats: {str(e)}")
