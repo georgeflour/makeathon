@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-ORDERS_PATH = "/app/excel/Data.xlsx"
-INVENTORY_PATH = "/app/excel/inventory_enriched.xlsx"
+ORDERS_PATH = "excel/Data.xlsx"
+INVENTORY_PATH = "excel/inventory_enriched.xlsx"
 BUNDLES_PATH = "/app/bundles.json"
 
 # Read the Excel files once when the module loads

@@ -8,7 +8,7 @@ def optimize_bundles(
     target_profit_margin_input="34",
     top_n=20,
     related_skus=None,
-    excel_path="/app/excel/product_bundle_suggestions.xlsx",
+    excel_path="excel/product_bundle_suggestions.xlsx",
     alpha=0.3  # <-- weighting for frequency in score, adjust as needed
 ):
     """

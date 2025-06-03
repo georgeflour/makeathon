@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-EXCEL_PATH = "/app/excel/inventory_enriched.xlsx"
+EXCEL_PATH = "excel/inventory_enriched.xlsx"
 
 
 def getInventory(dropdown=False):
