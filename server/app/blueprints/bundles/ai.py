@@ -160,7 +160,7 @@ def ai_call(
 
     # --- Azure OpenAI API Call ---
     endpoint = os.environ.get("ENDPOINT")
-    deployment = "makeathongpt41"
+    deployment = "gpt-4.1"
     search_endpoint = os.environ.get("SEARCH_ENDPOINT")
     search_index = os.environ.get("SEARCH_INDEX_NAME")
     search_key = os.environ.get("SEARCH_KEY")
