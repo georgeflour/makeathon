@@ -230,7 +230,7 @@ def ai_bundles_to_json(ai_output):
             continue
             
         try:
-            # Extract bundle information using more robust patterns
+            # Extract bundle information using simple patterns
             name_match = re.search(r"\*\*Bundle Name\*\*:\s*(.+?)(?:\n|$)", section)
             products_section = re.search(r"\*\*Products\*\*:[\s\n]*((?:-.+?\n)+)", section)
             margin_match = re.search(r"\*\*Estimated Margin\*\*:\s*(\d+)%", section)
@@ -239,51 +239,40 @@ def ai_bundles_to_json(ai_output):
             season_match = re.search(r"\*\*Season\*\*:\s*([^\n]+)", section)
             rationale_match = re.search(r"\*\*Rationale\*\*:\s*([^*]+?)(?=\n\s*(?:\*\*|$))", section, re.DOTALL)
             
-            if not (name_match and products_section):
-                logger.warning(f"Missing required fields in bundle section: {section}")
-                continue
-                
-            # Extract products
+            # Extract products without validation
             products = []
-            product_lines = products_section.group(1).strip().split("\n")
-            for line in product_lines:
-                if line.strip().startswith("- "):
-                    products.append({
-                        "item_name": line[2:].strip(),
-                        "qty": 1
-                    })
-            
-            if not products:
-                logger.warning("No products found in bundle")
-                continue
+            if products_section:
+                product_lines = products_section.group(1).strip().split("\n")
+                for line in product_lines:
+                    if line.strip().startswith("- "):
+                        products.append({
+                            "item_name": line[2:].strip(),
+                            "qty": 1
+                        })
             
             bundle_json = {
                 "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
-                "name": name_match.group(1).strip(),
+                "name": name_match.group(1).strip() if name_match else "",
                 "items": products,
                 "price": float(price_match.group(1)) if price_match else 0.0,
-                "profitMargin": f"{margin_match.group(1)}%" if margin_match else "35%",
+                "profitMargin": f"{margin_match.group(1)}%" if margin_match else None,
                 "duration": duration_match.group(1).strip() if duration_match else None,
                 "season": season_match.group(1).strip() if season_match and season_match.group(1).strip() else None,
                 "rationale": rationale_match.group(1).strip() if rationale_match else None
             }
             
             bundles.append(bundle_json)
-            logger.info(f"Created bundle JSON: {json.dumps(bundle_json, indent=2)}")
             
         except Exception as e:
             logger.error(f"Error processing bundle section: {e}")
-            logger.error(f"Problematic section:\n{section}")
             continue
     
-    result = {"bundles": bundles}
-    logger.info(f"Final JSON result: {json.dumps(result, indent=2)}")
-    return result
+    return {"bundles": bundles}
 
 
 def get_results_from_ai(
     product_to_clear: str = None,
-    target_profit_margin_input: str = "34",
+    target_profit_margin_input: str = "30",
     top_n: int = 20,
     related_skus: list = None,
     excel_path: str = "/app/excel/product_bundle_suggestions.xlsx"
