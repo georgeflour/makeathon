@@ -3,6 +3,7 @@
 logs/
 db_operations.log
 
+-data.json
 
 __pycache__/
 *.pyc
