@@ -4,11 +4,17 @@ from .optimise_bundles import optimize_bundles
 import json
 from datetime import datetime
 import sqlite3
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 bundles_bp = Blueprint("Bundles", __name__)
 
 
 def get_db_connection():
+    logger.debug("Opening database connection")
     conn = sqlite3.connect("bundles.db")
     conn.row_factory = sqlite3.Row
     return conn
@@ -45,68 +51,64 @@ init_db()
 
 @bundles_bp.route("/bundles", methods=["GET"])
 def get_bundles():
-    conn = get_db_connection()
-    # Get the most recent bundle set
-    result = conn.execute(
-        "SELECT bundle_data FROM bundles ORDER BY created_at DESC LIMIT 1"
-    ).fetchone()
-    conn.close()
+    logger.info("GET /bundles request received")
+    try:
+        conn = get_db_connection()
+        # Get the most recent bundle set
+        result = conn.execute(
+            "SELECT bundle_data FROM bundles ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
 
-    if result:
-        return jsonify(json.loads(result["bundle_data"])), 200
-    else:
-        return jsonify({"bundles": []}), 200
+        if result:
+            logger.info("Found existing bundles in database")
+            return jsonify(json.loads(result["bundle_data"])), 200
+        else:
+            logger.info("No bundles found in database")
+            return jsonify({"bundles": []}), 200
+    except Exception as e:
+        logger.error(f"Error in get_bundles: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 @bundles_bp.route("/bundles/generate", methods=["POST"])
 def generate_bundles():
+    logger.info("POST /bundles/generate request received")
     try:
         request_data = request.get_json() or {}
+        logger.info(f"Request data: {request_data}")
 
         # Map frontend parameters to AI function parameters
         product_to_clear = request_data.get("product_to_clear")
-        target_profit_margin_input = request_data.get("target_profit_margin_input", "Default (35%)")
-        duration_input = request_data.get(
-            "duration_input", "Estimate based on seasonality and stock"
-        )
-        objective_input = request_data.get(
-            "objective_input", "Increase average basket value by a target % (e.g., 10%)"
-        )
-        bundle_type_input = request_data.get("bundle_type_input", "All")
-        bundle_size_input = request_data.get("bundle_size_input", "Default (2–5 products)")
+        # Strip '%' symbol if present and convert to string
+        target_profit_margin_input = str(request_data.get("target_profit_margin_input", "35"))
+        bundle_size = request_data.get("bundle_size", 10)
 
-        # First, run optimize_bundles
-        margin_value = target_profit_margin_input.split()[0].strip("()%") if isinstance(target_profit_margin_input, str) else "35"
-        bundle_size = int(bundle_size_input.split()[0]) if isinstance(bundle_size_input, str) and bundle_size_input.split()[0].isdigit() else 10
-        
-        optimize_bundles(
-            product_to_clear=product_to_clear,
-            target_profit_margin_input=margin_value,
-            top_n=bundle_size,
-            related_skus=None  # Could be added as a frontend parameter if needed
-        )
+        logger.info(f"Parameters: product_to_clear={product_to_clear}, margin={target_profit_margin_input}, size={bundle_size}")
 
         # Then get AI results
+        logger.info("Calling get_results_from_ai")
         result = get_results_from_ai(
             product_to_clear=product_to_clear,
             target_profit_margin_input=target_profit_margin_input,
-            duration_input=duration_input,
-            objective_input=objective_input,
-            bundle_type_input=bundle_type_input,
-            bundle_size_input=bundle_size_input,
+            top_n=bundle_size
         )
+        logger.info("Successfully got results from AI")
 
         if result:
             # Store the new bundles in the database
+            logger.info("Storing bundles in database")
             conn = get_db_connection()
             conn.execute("INSERT INTO bundles (bundle_data) VALUES (?)", [json.dumps(result)])
             conn.commit()
             conn.close()
+            logger.info("Successfully stored bundles in database")
             return jsonify(result), 200
         else:
+            logger.error("AI returned no results")
             return jsonify({"error": "Failed to generate bundles"}), 500
     except Exception as e:
-        print(f"Error in generate_bundles: {str(e)}")  # Add logging
+        logger.error(f"Error in generate_bundles: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -157,37 +159,17 @@ def get_data_user():
     if not request_data:
         return jsonify({"error": "No data provided"}), 400
 
-    # Extract parameters from frontend and map them to AI function parameters
+    # Extract parameters from frontend
     product_name = request_data.get("product_name")
-    profit_margin = request_data.get("profit_margin", 15)
-    objective = request_data.get("objective", "Max Cart")
+    profit_margin = request_data.get("profit_margin", 35)
     quantity = request_data.get("quantity", 2)
-    timeframe = request_data.get("timeframe", "1 month")
-    bundle_type = request_data.get("bundle_type", "all")
 
-    # First, run optimize_bundles
-    optimize_bundles(
+    # Call get_results_from_ai with the correct parameters
+    result = get_results_from_ai(
         product_to_clear=product_name,
         target_profit_margin_input=str(profit_margin),
-        top_n=quantity,
-        related_skus=None  # Could be added as a frontend parameter if needed
+        top_n=quantity
     )
-
-    # Map frontend parameters to AI function parameters
-    ai_parameters = {
-        "product_to_clear": product_name if product_name else None,
-        "target_profit_margin_input": f"{profit_margin}%",
-        "duration_input": timeframe,
-        "objective_input": (
-            "Increase average basket value by a target % (e.g., 10%)"
-            if objective == "Max Cart"
-            else "Clear specified product(s)"
-        ),
-        "bundle_type_input": bundle_type.capitalize(),
-        "bundle_size_input": f"{quantity} products",
-    }
-
-    result = get_results_from_ai(**ai_parameters)
 
     if result:
         return jsonify(result), 200

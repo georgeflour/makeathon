@@ -256,7 +256,7 @@ export default function RevenueAnalyticsDashboard() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('http://127.0.0.1:5001/analytics', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +278,7 @@ export default function RevenueAnalyticsDashboard() {
 
   const fetchPrediction = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5001/analytics-prediction', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics-prediction`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -299,7 +299,7 @@ export default function RevenueAnalyticsDashboard() {
 
   const fetchTrend = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5001/analytics-trend', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analytics-trend`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

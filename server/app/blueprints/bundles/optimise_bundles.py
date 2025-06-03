@@ -1,23 +1,61 @@
 import pandas as pd
 import os
+import logging
+import uuid
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# In Docker, the excel directory is mounted at /app/excel
+EXCEL_DIR = "/app/excel"
+
+logger.info(f"EXCEL_DIR: {EXCEL_DIR}")
 
 def optimize_bundles(
     product_to_clear=None,
     target_profit_margin_input="34",
     top_n=20,
     related_skus=None,
-    excel_path="excel/product_bundle_suggestions.xlsx",
+    excel_path=os.path.join(EXCEL_DIR, "product_bundle_suggestions.xlsx"),
     alpha=0.3  # <-- weighting for frequency in score, adjust as needed
 ):
     """
     Returns filtered and optimized bundles as dictionaries (for API or other Python code).
     Now local search objective is a weighted combination of margin and bundle frequency.
     """
-    margin = int(target_profit_margin_input.split()[0]) if isinstance(target_profit_margin_input, str) else int(target_profit_margin_input)
-    bundle_sheets = pd.read_excel(excel_path, sheet_name=None)
+    logger.info(f"Starting optimize_bundles with parameters:")
+    logger.info(f"product_to_clear: {product_to_clear}")
+    logger.info(f"target_profit_margin_input: {target_profit_margin_input}")
+    logger.info(f"top_n: {top_n}")
+    logger.info(f"related_skus: {related_skus}")
+    logger.info(f"excel_path: {excel_path}")
+    
+    try:
+        # Clean up the margin input by removing '%' and any whitespace
+        margin_str = str(target_profit_margin_input).replace('%', '').strip()
+        logger.info(f"Cleaned margin string: {margin_str}")
+        margin = int(margin_str)
+        logger.info(f"Parsed margin: {margin}")
+    except Exception as e:
+        logger.error(f"Error parsing margin: {e}")
+        raise
+
+    try:
+        logger.info(f"Attempting to read Excel file: {excel_path}")
+        if not os.path.exists(excel_path):
+            available_files = os.listdir(EXCEL_DIR)
+            logger.error(f"Excel file not found. Available files in {EXCEL_DIR}: {available_files}")
+            raise FileNotFoundError(f"Excel file not found at {excel_path}")
+            
+        bundle_sheets = pd.read_excel(excel_path, sheet_name=None)
+        logger.info(f"Successfully read Excel file. Available sheets: {list(bundle_sheets.keys())}")
+    except Exception as e:
+        logger.error(f"Error reading Excel file: {e}")
+        raise
+
     wanted_sheets = {k: v for k, v in bundle_sheets.items() if k.startswith('Bundles_')}
+    logger.info(f"Filtered bundle sheets: {list(wanted_sheets.keys())}")
 
     output = {}
     local_search_output = {}
@@ -166,23 +204,46 @@ def optimize_bundles(
             local_df = pd.DataFrame(local_solutions).drop_duplicates('SKUs').sort_values('Optimized Score', ascending=False).head(top_n)
             local_search_output[sheet] = local_df
 
-    # Convert DataFrames to dict
-    return {
-        'optimized_bundles': {k: v.to_dict(orient='records') for k, v in local_search_output.items()},
-    }
+    # Convert DataFrames to dict and return in the expected format
+    bundles_list = []
+    for sheet_name, df in local_search_output.items():
+        for _, row in df.iterrows():
+            bundle = {
+                'bundle_id': str(uuid.uuid4()),
+                'name': f"Bundle {len(bundles_list) + 1}",
+                'items': [{'item_name': p.strip(), 'qty': 1} for p in row['Products'].split(',')],
+                'price': float(row.get('Original Total Price', 0)),
+                'profitMargin': f"{margin}%",
+                'duration': "2 weeks",  # Default duration
+                'season': "All year",   # Default season
+                'rationale': f"Optimized bundle with {len(row['Products'].split(','))} items"
+            }
+            bundles_list.append(bundle)
+    
+    return {'bundles': bundles_list}
     
 def save_only_optimized_bundles(
     product_to_clear=None, 
     target_profit_margin_input="34", 
     top_n=20, 
     related_skus=None, 
-    outfile="/app/excel/product_bundle_suggestions.xlsx"
+    outfile=os.path.join(EXCEL_DIR, "optimized_bundles_all_sizes.xlsx")
     ):
-    bundles_dict = optimize_bundles(product_to_clear, target_profit_margin_input, top_n, related_skus)
-    for key, sheet_dict in bundles_dict['optimized_bundles'].items():
-        df = pd.DataFrame(sheet_dict)
-        with pd.ExcelWriter(outfile, engine='openpyxl', mode='a' if key != list(bundles_dict['optimized_bundles'].keys())[0] else 'w') as writer:
-            df.to_excel(writer, sheet_name=key, index=False)
+    logger.info(f"Starting save_only_optimized_bundles")
+    logger.info(f"Output file: {outfile}")
+    
+    try:
+        bundles_dict = optimize_bundles(product_to_clear, target_profit_margin_input, top_n, related_skus)
+        logger.info(f"Successfully generated bundles")
+        
+        for key, sheet_dict in bundles_dict['bundles']:
+            logger.info(f"Processing bundle: {key}")
+            with pd.ExcelWriter(outfile, engine='openpyxl', mode='a' if key != bundles_dict['bundles'][0]['bundle_id'] else 'w') as writer:
+                pd.DataFrame([sheet_dict]).to_excel(writer, sheet_name=key, index=False)
+                logger.info(f"Successfully wrote bundle {key} to {outfile}")
+    except Exception as e:
+        logger.error(f"Error in save_only_optimized_bundles: {e}")
+        raise
 
 # Example usage
 if __name__ == "__main__":
@@ -191,5 +252,5 @@ if __name__ == "__main__":
         target_profit_margin_input="34",
         top_n=20,
         related_skus=None,
-        outfile="/app/excel/product_bundle_suggestions.xlsx"
+        outfile=os.path.join(EXCEL_DIR, "optimized_bundles_all_sizes.xlsx")
     )

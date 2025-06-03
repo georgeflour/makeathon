@@ -135,7 +135,7 @@ export default function FavoritesPage() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('http://127.0.0.1:5000/bundles/favorites', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/favorites`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +164,7 @@ export default function FavoritesPage() {
   const handleRemoveFavorite = async (bundleId: string) => {
     try {
       setRemovingFavorite(bundleId)
-      const response = await fetch('http://127.0.0.1:5000/bundles/favorite', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/favorite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

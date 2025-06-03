@@ -4,6 +4,11 @@ from openai import AzureOpenAI
 import json
 import re
 import uuid
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 from .optimise_bundles import optimize_bundles
 
@@ -15,7 +20,7 @@ def ai_call(
     duration_input: str = "Estimate based on seasonality and stock",
     objective_input: str = "Increase average basket value by a target % (e.g., 10%)",
     bundle_type_input: str = "All",
-    bundle_size_input: str = "Default (2–5 products)",
+    bundle_size_input: str = "Default (2-5 products)",
     top_n: int = 10,
     related_skus: list = None,
     excel_path: str = "product_bundle_suggestions.xlsx"
@@ -27,6 +32,7 @@ def ai_call(
     """
     load_dotenv()
     # STEP 1: Run Python-side optimiser
+    logger.info("Starting optimize_bundles")
     bundles_result = optimize_bundles(
         product_to_clear=product_to_clear,
         target_profit_margin_input=target_profit_margin_input,
@@ -34,29 +40,31 @@ def ai_call(
         related_skus=related_skus,
         excel_path=excel_path
     )
-    # Use the "best" bundle sheet (for example, Bundles_2 or whatever your logic prefers)
-    # Here we just flatten and take the first 'top_n' bundles across sizes for demonstration.
+    logger.info(f"optimize_bundles returned: {json.dumps(bundles_result, indent=2)}")
+
+    # Process bundles for AI
     python_bundles = []
-    for sheet, df in bundles_result['output'].items():
-        for _, row in df.iterrows():
-            python_bundles.append({
-                "SKUs": str(row['SKUs']),
-                "Products": [p.strip() for p in str(row['Products']).split(',')],
-                "Count": int(row.get('Count', 1)),
-                "Bundle Size": int(row.get('Bundle Size', 2)),
-                "Original Total Price": float(row['Original Total Price']),
-                "Suggested Bundle Price": float(row['Suggested Bundle Price'])
-            })
-            if len(python_bundles) >= top_n:
-                break
+    for bundle in bundles_result['bundles']:
+        items = bundle.get('items', [])
+        products = [item['item_name'] for item in items]
+        python_bundles.append({
+            "Products": products,
+            "Bundle Size": len(items),
+            "Original Total Price": float(bundle.get('price', 0)),
+            "Suggested Bundle Price": float(bundle.get('price', 0)) * (1 - float(target_profit_margin_input.replace('%', '').strip()) / 100)
+        })
         if len(python_bundles) >= top_n:
             break
+    
+    logger.info(f"Processed bundles for AI: {json.dumps(python_bundles, indent=2)}")
 
-    # STEP 2: Format bundles as markdown for prompt (tabular or bullet, for LLM context)
+    # STEP 2: Format bundles as markdown for prompt
     bundles_md = "\n".join([
         f"- Products: {', '.join(b['Products'])} | Bundle Size: {b['Bundle Size']} | Original Price: €{b['Original Total Price']:.2f} | Suggested Bundle Price: €{b['Suggested Bundle Price']:.2f}"
         for b in python_bundles
     ])
+    
+    logger.info(f"Bundles markdown:\n{bundles_md}")
 
     # STEP 3: Prompt for AI
 
@@ -202,50 +210,66 @@ def ai_call(
 
 
 def ai_bundles_to_json(ai_output):
-    # Adjust the bundle block pattern for optional trailing spaces and allow for empty lines between bundles
-    bundle_pattern = re.compile(
-        r"- \*\*Bundle Name\*\*: (.*?)\s*\n- \*\*Products\*\*:\s*\n(.*?)(?=\n- \*\*Bundle Name\*\*:|\Z)",
-        re.DOTALL,
-    )
-    # Allow for optional spaces before/after x in product line
-    product_pattern = re.compile(r"- ([^\n]+?)\s*x\s*(\d+)")
-    # Updated field patterns for possible extra spaces at the end of each line
-    field_patterns = {
-        "margin": re.compile(r"- \*\*Estimated Margin\*\*: ([\d.,]+)%\s*"),
-        "price": re.compile(r"- \*\*Price\*\*: €([\d.,]+)\s*"),
-        "duration": re.compile(r"- \*\*Duration\*\*: (.*?)\s*(?:\n|$)"),
-        "season": re.compile(r"- \*\*Season\*\*: (.*?)\s*(?:\n|$)"),
-        "rationale": re.compile(r"- \*\*Rationale\*\*: (.*?)(?:\s*\[doc\d+\])?(?:\n|$)"),
-    }
-
+    logger.info(f"Converting AI output to JSON. AI output:\n{ai_output}")
+    
+    # Split the output into individual bundles
+    bundle_sections = ai_output.split("---")
     bundles = []
-    for bundle_match in bundle_pattern.finditer(ai_output):
-        name, bundle_block = bundle_match.groups()
-        # Extract products
-        products_block = bundle_block.split("- **Estimated Margin**:")[0]
-        products = [
-            {"item_name": m.group(1).strip(), "qty": int(m.group(2))}
-            for m in product_pattern.finditer(products_block)
-        ]
-        # Extract other fields
-        margin = field_patterns["margin"].search(bundle_block)
-        price = field_patterns["price"].search(bundle_block)
-        duration = field_patterns["duration"].search(bundle_block)
-        season = field_patterns["season"].search(bundle_block)
-        rationale = field_patterns["rationale"].search(bundle_block)
-        bundles.append(
-            {
+    
+    for section in bundle_sections:
+        if not section.strip():
+            continue
+            
+        try:
+            # Extract bundle information using more robust patterns
+            name_match = re.search(r"\*\*Bundle Name\*\*:\s*(.+?)(?:\n|$)", section)
+            products_section = re.search(r"\*\*Products\*\*:[\s\n]*((?:-.+?\n)+)", section)
+            margin_match = re.search(r"\*\*Estimated Margin\*\*:\s*(\d+)%", section)
+            price_match = re.search(r"\*\*Price\*\*:\s*€(\d+(?:\.\d*)?)", section)
+            duration_match = re.search(r"\*\*Duration\*\*:\s*([^\n]+)", section)
+            season_match = re.search(r"\*\*Season\*\*:\s*([^\n]+)", section)
+            rationale_match = re.search(r"\*\*Rationale\*\*:\s*([^*]+?)(?=\n\s*(?:\*\*|$))", section, re.DOTALL)
+            
+            if not (name_match and products_section):
+                logger.warning(f"Missing required fields in bundle section: {section}")
+                continue
+                
+            # Extract products
+            products = []
+            product_lines = products_section.group(1).strip().split("\n")
+            for line in product_lines:
+                if line.strip().startswith("- "):
+                    products.append({
+                        "item_name": line[2:].strip(),
+                        "qty": 1
+                    })
+            
+            if not products:
+                logger.warning("No products found in bundle")
+                continue
+            
+            bundle_json = {
                 "bundle_id": f"bundle_{uuid.uuid4().hex[:8]}",
-                "name": name.strip(),
+                "name": name_match.group(1).strip(),
                 "items": products,
-                "price": float(price.group(1).replace(",", ".")) if price else None,
-                "profitMargin": f"{margin.group(1)}%" if margin else None,
-                "duration": duration.group(1).strip() if duration else None,
-                "season": season.group(1).strip() if season else None,
-                "rationale": rationale.group(1).strip() if rationale else None,
+                "price": float(price_match.group(1)) if price_match else 0.0,
+                "profitMargin": f"{margin_match.group(1)}%" if margin_match else "35%",
+                "duration": duration_match.group(1).strip() if duration_match else None,
+                "season": season_match.group(1).strip() if season_match and season_match.group(1).strip() else None,
+                "rationale": rationale_match.group(1).strip() if rationale_match else None
             }
-        )
-    return {"bundles": bundles}
+            
+            bundles.append(bundle_json)
+            logger.info(f"Created bundle JSON: {json.dumps(bundle_json, indent=2)}")
+            
+        except Exception as e:
+            logger.error(f"Error processing bundle section: {e}")
+            logger.error(f"Problematic section:\n{section}")
+            continue
+    
+    result = {"bundles": bundles}
+    logger.info(f"Final JSON result: {json.dumps(result, indent=2)}")
+    return result
 
 
 def get_results_from_ai(
@@ -255,12 +279,24 @@ def get_results_from_ai(
     related_skus: list = None,
     excel_path: str = "/app/excel/product_bundle_suggestions.xlsx"
 ) -> dict:
+    logger.info(f"Starting get_results_from_ai with product_to_clear={product_to_clear}, margin={target_profit_margin_input}")
+    
+    # Format the profit margin input as expected by ai_call
+    formatted_margin = f"{target_profit_margin_input}%"
+    
     output = ai_call(
         product_to_clear=product_to_clear,
-        target_profit_margin_input=target_profit_margin_input,
+        target_profit_margin_input=formatted_margin,
+        duration_input="Estimate based on seasonality and stock",
+        objective_input="Increase average basket value by a target % (e.g., 10%)",
+        bundle_type_input="All",
+        bundle_size_input=f"Default ({top_n} products)",
         top_n=top_n,
         related_skus=related_skus,
         excel_path=excel_path
     )
+    logger.info(f"AI call returned:\n{output}")
+    
     bundle_json = ai_bundles_to_json(output)
+    logger.info(f"Final result: {json.dumps(bundle_json, indent=2)}")
     return bundle_json

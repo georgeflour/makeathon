@@ -152,7 +152,7 @@ export default function InventoryPage() {
       setError(null)
 
       // Replace with your actual Flask backend URL
-      const response = await fetch('http://127.0.0.1:5001/inventory', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

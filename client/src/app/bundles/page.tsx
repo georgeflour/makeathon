@@ -64,7 +64,7 @@ export default function BundlesPage() {
       setInventoryLoading(true)
       setInventoryError(null)
 
-      const response = await fetch('http://127.0.0.1:5000/inventory-dropdown', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/inventory-dropdown`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export default function BundlesPage() {
     try {
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5001/bundles', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5001/bundles/generate', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -179,7 +179,7 @@ export default function BundlesPage() {
       setIsGenerating(true)
       setLoading(true)
 
-      const response = await fetch('http://127.0.0.1:5001/bundles/data', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,7 +249,7 @@ export default function BundlesPage() {
 
   const handleDelete = async (bundleId: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:5001/bundles/delete', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -760,7 +760,7 @@ function BundleCard({ bundle, onDelete, onView }: BundleCardProps) {
 
   const fetchFavoriteStatus = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/bundles/favorite/${bundle.id}`)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/favorite/${bundle.id}`)
       const data = await response.json()
       setIsFavorite(data.is_favorite)
     } catch (error) {
@@ -771,7 +771,7 @@ function BundleCard({ bundle, onDelete, onView }: BundleCardProps) {
   const toggleFavorite = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('http://127.0.0.1:5000/bundles/favorite', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bundles/favorite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -932,7 +932,7 @@ function CreateBundleModal({ onClose, onSubmit }: CreateBundleModalProps) {
 
     try {
       // Replace with your Flask backend URL for creating bundles
-      const response = await fetch('http://127.0.0.1:5000/api/bundles', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/bundles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -50,7 +50,7 @@ export default function Dashboard() {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('http://127.0.0.1:5000/dashboard/stats')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/dashboard/stats`)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
