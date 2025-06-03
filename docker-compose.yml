@@ -9,7 +9,7 @@ services:
       - ./client:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - NEXT_PUBLIC_API_URL=http://localhost:5050
       - NODE_ENV=development
     depends_on:
       - server
@@ -22,7 +22,7 @@ services:
       context: .
       dockerfile: Dockerfile.server
     ports:
-      - "5000:5000"
+      - "5050:5000"
     volumes:
       - ./server:/app
       - ./excel:/app/excel
