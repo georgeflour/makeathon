@@ -7,8 +7,8 @@ import uuid
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# In Docker, the excel directory is mounted at /app/excel
-EXCEL_DIR = "/app/excel"
+# In Docker, the excel directory is mounted at excel
+EXCEL_DIR = "excel"
 
 logger.info(f"EXCEL_DIR: {EXCEL_DIR}")
 

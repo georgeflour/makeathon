@@ -327,7 +327,7 @@ def get_results_from_ai(
     top_n: int = 20,
     bundle_cust_segment_input: str = None,
     related_skus: list = None,
-    excel_path: str = "/app/excel/product_bundle_suggestions.xlsx"
+    excel_path: str = "excel/product_bundle_suggestions.xlsx"
 ) -> dict:
     logger.info(f"Starting get_results_from_ai with product_to_clear={product_to_clear}, margin={target_profit_margin_input}")
     

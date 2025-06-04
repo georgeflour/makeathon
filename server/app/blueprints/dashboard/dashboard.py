@@ -9,7 +9,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-EXCEL_DIR = "/app/excel"
+EXCEL_DIR = "excel"
 
 ORDERS_PATH = os.path.join(EXCEL_DIR, "Data.xlsx")
 INVENTORY_PATH = os.path.join(EXCEL_DIR, "inventory_enriched.xlsx")
